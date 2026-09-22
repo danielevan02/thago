@@ -1,0 +1,48 @@
+---
+import Base from '../layouts/Base.astro';
+import StructuredData from '../components/StructuredData.astro';
+import Preloader from '../components/Preloader.astro';
+import Nav from '../components/Nav.astro';
+import Hero from '../components/Hero.astro';
+import Message from '../components/Message.astro';
+import Products from '../components/Products.astro';
+import Drinks from '../components/Drinks.astro';
+import Benefits from '../components/Benefits.astro';
+import Nutrition from '../components/Nutrition.astro';
+import Myths from '../components/Myths.astro';
+import VideoPin from '../components/VideoPin.astro';
+import Testimonials from '../components/Testimonials.astro';
+import CtaFooter from '../components/CtaFooter.astro';
+---
+
+<Base>
+  <StructuredData slot="head" />
+
+  <Preloader />
+  <Nav />
+
+  <main>
+    <Hero />
+    <Message />
+    {/*
+      Minuman sengaja duduk di antara Varian dan Manfaat.
+
+      Alasan naratif: dua section ini adalah katalognya — pengunjung sebaiknya
+      tahu seluruh yang dijual sebelum masuk ke argumen kesehatan (Manfaat →
+      Nutrisi → Fakta), bukan menemukan lini kedua setelah argumennya habis.
+
+      Alasan ritme: Varian dan Manfaat sama-sama krem dan selama ini
+      berdempetan. Section void ini memecahnya. Ditaruh setelah Nutrisi malah
+      memanjangkan rentetan gelap yang sudah ada (indigo → purple-deep →
+      purple-deep) jadi empat section berturut-turut.
+    */}
+    <Products />
+    <Drinks />
+    <Benefits />
+    <Nutrition />
+    <Myths />
+    <VideoPin />
+    <Testimonials />
+    <CtaFooter />
+  </main>
+</Base>

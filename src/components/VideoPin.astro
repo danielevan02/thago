@@ -1,0 +1,186 @@
+---
+import MediaSlot from './ui/MediaSlot.astro';
+import CircleBadge from './ui/CircleBadge.astro';
+
+/**
+ * Section "wow" ala SPYLT: video mulai sebagai lingkaran kecil lalu membesar
+ * memenuhi layar mengikuti scroll (pin + clip-path circle di-scrub).
+ *
+ * Videonya dipotong ke panel 1:1 yang tajam (sumber Veo ter-export 16:9 dengan
+ * pillarbox blur di kiri-kanan). Rasio segi empat itu disengaja: `object-cover`
+ * memotong sisi di layar potret, jadi makin persegi sumbernya makin sedikit
+ * yang hilang di HP. Sumber aslinya disimpan di raw/.
+ */
+---
+
+{/*
+  LATAR TIDAK ADA DI SECTION INI — sengaja. Ia dipindahkan ke div di bawah.
+
+  Sebabnya section ini MENIMPA ekor section mitos (margin-top negatif, dipasang
+  dari videopin.js). Kalau latarnya menempel di section, ungu solidnya menutupi
+  kartu fakta terakhir — itu bug "ada yang terpotong" yang sempat muncul.
+
+  Dengan latar dipindah ke dalam dan digeser turun sejauh tumpangannya, petak
+  tumpang tindih itu jadi TRANSPARAN: kartu mitos tetap terlihat, dan satu-
+  satunya hal yang tergambar di atasnya adalah lingkaran videonya sendiri.
+*/}
+{/*
+  `isolate` WAJIB — bukan hiasan.
+
+  Panggung di dalam diberi z-10 supaya videonya menimpa caption saat mengembang.
+  Tanpa `isolate`, angka itu bertanding di tumpukan global melawan z-10 milik
+  section testimoni. Dua elemen bertumpuk dengan z-index identik harus diurutkan
+  browser lewat posisi DOM, dan selama scroll halus keputusan itu bisa berubah
+  antar-frame — itulah kedipan putih saat lingkaran mengembang.
+
+  `isolation: isolate` membuat section ini jadi stacking context sendiri: z-10
+  panggung cuma berlaku DI DALAM sini, sementara section-nya sendiri tetap
+  z-auto sehingga testimoni yang ber-z-10 tetap bisa menimpanya di akhir.
+*/}
+<section data-videopin data-nav-theme="dark" class="relative isolate">
+  {/*
+    Latar section. `top`-nya digeser turun sejauh tumpangan oleh videopin.js
+    supaya petak yang menimpa Myths tetap tembus pandang. Tanpa JS ia menutupi
+    seluruh section seperti biasa — dan tanpa JS tidak ada tumpangan juga.
+  */}
+  <div class="bg-purple-deep absolute inset-0" data-videopin-bg></div>
+
+  <!--
+    STICKY, bukan GSAP pin.
+
+    Panggung setinggi satu layar menempel di top-0 sepanjang track di bawahnya.
+    Selama menempel, lingkaran clip-path yang berpusat di 50% 50% otomatis jatuh
+    persis di tengah viewport — tidak ada satu pun angka yang perlu dihitung
+    untuk memarkirnya di sana. Itu sebabnya fase "lingkaran mengikuti kamu"
+    gratis di sini, sementara dengan pin ia harus dianimasikan melawan gerak
+    section-nya sendiri.
+
+    Bonusnya: sticky tidak menyisipkan pin-spacer, jadi tinggi section ini tetap
+    sama dengan yang tertulis. Dua bug pemutaran di videopin.js lahir justru
+    karena tinggi yang berubah diam-diam oleh pin-spacer.
+
+    PANGGUNG 110svh DI DESKTOP, bukan 100 — menyalin h-[110vh] di referensi.
+    Efeknya pusat lingkaran duduk di 55svh, sedikit di bawah tengah layar, dan
+    tepi bawah videonya tidak pernah ikut terlihat saat mengembang.
+
+    Angka 55svh itu juga yang menentukan besar tumpangan ke section mitos, dan
+    bukan kebetulan: jarak dari tepi atas panggung ke lingkaran PERSIS separuh
+    tinggi panggung. Menarik section naik sejauh itu membuat lingkarannya
+    mendarat tepat di bawah kartu fakta terakhir alih-alih 570px di bawahnya.
+    Lihat OVERHANG di videopin.js — kalau tinggi panggung diubah, angka itu
+    harus ikut separuhnya.
+
+    TINGGI TRACK = tinggi panggung + jarak menempel.
+      desktop 360svh = 110 + 250 → lead 60 · mengembang 50 · CTA 20 · tahan 120
+      mobile  280svh = 100 + 180 → tanpa lingkaran, tanpa lead
+
+    LEAD 60vh itu bukan scroll kosong: sepanjang jarak itu kartu mitos masih
+    naik melewati lingkaran yang sudah terkunci di tengah (lihat OVERHANG).
+    Angka ini HARUS cocok dengan total durasi timeline di videopin.js
+    (1 satuan timeline = 10svh).
+
+    motion-reduce: tanpa animasi, track panjang cuma jadi scroll kosong —
+    dikembalikan ke satu layar.
+  -->
+  <div class="relative h-[280svh] motion-reduce:h-[100svh] md:h-[360svh]" data-videopin-track>
+    <div
+      class="sticky top-0 z-10 flex h-[100svh] items-center justify-center overflow-hidden md:h-[110svh]"
+      data-videopin-pin
+    >
+
+    <!--
+      Lingkaran video yang membesar. Clip-path awalnya SENGAJA tidak ditulis
+      di markup: kondisi awal dipasang oleh videopin.js per breakpoint
+      (desktop: circle 6% ala SPYLT; mobile: tanpa lingkaran, video penuh).
+      Tanpa JS / reduced-motion, video tampil penuh — bukan terjebak jadi
+      lingkaran kecil selamanya.
+    -->
+    <div class="absolute inset-0" data-videopin-clip>
+      <!--
+        preload="metadata", bukan "auto". Video ini jauh di bawah lipatan — ada
+        lima section sebelum sampai ke sini — tapi "auto" menyuruh browser
+        mengunduh seluruh 732 KB-nya sejak halaman dibuka, berebut bandwidth
+        dengan foto produk dan font yang justru menentukan LCP. Poster-nya tetap
+        muncul seketika, dan videopin.js baru memutar saat section ini mendekat.
+      -->
+      <MediaSlot
+        kind="video"
+        src="/video/hero.mp4"
+        poster="/video/hero-poster.jpg"
+        note="Video hero 10–15 detik: nuang topping / aduk chia pudding, landscape"
+        ratio="1/1"
+        preload="metadata"
+        tone="cream"
+        align="top"
+        class="relative h-full w-full [&>*]:h-full [&>*]:w-full"
+      />
+      <!-- Scrim. Gelap di tengah supaya teks CTA tetap terbaca berapa pun
+           terang isi videonya — 25% rata dulu tidak cukup.
+           Diturunkan dari 0,72 ke 0,45 setelah video asli masuk: angka lama
+           disetel melawan gradien placeholder yang jauh lebih terang, dan pada
+           video ini ia mematikan cup-nya persis di titik lingkaran membuka. -->
+      <div
+        class="pointer-events-none absolute inset-0"
+        style="background: radial-gradient(ellipse at 50% 50%, rgba(21,12,46,0.45) 0 42%, rgba(21,12,46,0.3) 100%)"
+      >
+      </div>
+
+      <!--
+        Ukuran 15vw = ukuran cincin teks di referensi. Cincinnya sengaja lebih
+        besar dari lingkaran clip awal (6%), jadi di awal ia terpotong dan
+        baru tersingkap penuh saat lingkarannya mengembang.
+      -->
+      <div class="absolute inset-0 flex items-center justify-center" data-videopin-badge>
+        <CircleBadge class="w-[44vw] md:w-[15vw]" />
+      </div>
+    </div>
+
+    <!-- overlay CTA yang muncul setelah lingkaran penuh -->
+    <div
+      class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-5 px-5 text-center opacity-0"
+      data-videopin-overlay
+    >
+      <p class="font-hand text-lime text-3xl md:text-4xl">yang bikin nagih</p>
+      <h3 class="display-md text-cream max-w-[14ch]">SEKALI COBA, LANGSUNG NGERTI</h3>
+      <a href="#pesan" class="btn-bubble bg-lime text-ink pointer-events-auto mt-2">Pesan Sekarang</a>
+      </div>
+    </div>
+
+    <!--
+      Caption MENGAPIT lingkaran: baris pertama di atas, baris kedua di bawah.
+      Celahnya pakai vmin supaya proporsinya terhadap lingkaran awal tetap sama
+      di lebar layar mana pun.
+
+      IKUT `sticky top-0`, SAMA SEPERTI PANGGUNG — dan di situlah presisinya.
+
+      Dua elemen sticky dengan top yang sama dan TINGGI yang sama punya titik
+      tengah yang sama persis begitu keduanya terkunci. Jadi saat caption ini
+      berhenti, celahnya berada tepat di lingkaran — bukan karena ada angka yang
+      disetel supaya cocok, tapi karena keduanya diukur dari acuan yang sama.
+      Ubah tinggi panggung, caption ikut sendiri; tidak ada yang perlu dihitung
+      ulang.
+
+      Versi sebelumnya menaruh caption sebagai elemen absolut di top-[60svh] dan
+      memulai pengembangan di satuan 6, berharap keduanya berpapasan di tengah
+      jalan. Itu memang berpapasan — teksnya cuma numpang lewat, tidak pernah
+      berhenti di lingkaran.
+
+      Margin negatif menentukan KAPAN ia terkunci, bukan di mana:
+        -50svh → mulai di 60svh dari puncak track, jadi terkunci 60vh setelah
+                 panggung terkunci. Itu jeda saat lingkaran menghampiri.
+        mobile -100svh → mulai di 0, terkunci berbarengan dengan panggung,
+                 karena di sana tidak ada lingkaran yang perlu menghampiri.
+
+      z-index: panggung diberi z-10 supaya videonya menimpa teks ini saat
+      mengembang. Tanpa itu caption tetap terbaca di atas video yang sudah
+      memenuhi layar, karena ia datang belakangan di DOM.
+    -->
+    <div
+      class="pointer-events-none sticky top-0 -mt-[100svh] flex h-[100svh] flex-col items-center justify-center gap-[clamp(10rem,32vmin,20rem)] px-5 text-center md:-mt-[50svh] md:h-[110svh]"
+      data-videopin-caption
+    >
+      <h2 class="display-md text-cream/90">DIFOTO DULU,</h2>
+      <h2 class="display-md text-lime">DIMAKAN KEMUDIAN</h2>
+    </div>
+  </div>
+</section>

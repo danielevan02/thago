@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ditulis tangan karena situsnya baru satu halaman.
+
+  Begitu ada halaman kedua, jangan tambah manual di sini — pasang
+  @astrojs/sitemap supaya dihasilkan otomatis saat build, dengan /og
+  dikecualikan lewat opsi `filter`. Sitemap statis yang lupa diperbarui lebih
+  merugikan daripada tidak punya sitemap sama sekali.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://thago.id/</loc>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

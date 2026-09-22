@@ -1,0 +1,47 @@
+---
+/**
+ * Marquee teks berjalan. Isinya digandakan 2× supaya loop-nya mulus.
+ * Animasi dikendalikan GSAP (lihat scripts/sections/marquee.js) — arahnya
+ * membalik mengikuti arah scroll, persis trik SPYLT. Kalau JS mati, jatuh ke
+ * animasi CSS biasa.
+ */
+interface Props {
+  items: string[];
+  class?: string;
+  /** kecepatan dasar, px per detik */
+  speed?: number;
+  reverse?: boolean;
+  separator?: string;
+}
+const {
+  items,
+  class: className = '',
+  speed = 90,
+  reverse = false,
+  separator = '✦',
+} = Astro.props;
+---
+
+<div class={`marquee relative overflow-hidden ${className}`} data-marquee data-speed={speed} data-reverse={reverse ? '1' : '0'}>
+  <div class="marquee__track flex w-max items-center whitespace-nowrap will-change-transform">
+    {
+      [0, 1].map(() => (
+        <div class="flex items-center" aria-hidden="true">
+          {items.map((item) => (
+            <span class="flex items-center">
+              <span class="px-6">{item}</span>
+              <span class="opacity-60">{separator}</span>
+            </span>
+          ))}
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  /* fallback tanpa JS */
+  :global(.no-js) .marquee__track {
+    animation: marquee-slide 18s linear infinite;
+  }
+</style>

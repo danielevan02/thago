@@ -1,0 +1,135 @@
+---
+/**
+ * Doodle SVG buatan sendiri — meniru coretan tangan di feed IG Thago.
+ * Semua path pakai stroke, jadi bisa dianimasikan "digambar" dengan DrawSVGPlugin.
+ *
+ * Pakai: <Doodle name="arrow" class="w-24 text-pink" />
+ */
+type DoodleName =
+  | 'arrow'
+  | 'arrow-down'
+  | 'squiggle'
+  | 'star'
+  | 'sparkle'
+  | 'spiral'
+  | 'underline'
+  | 'zigzag'
+  | 'burst'
+  | 'strike';
+
+interface Props {
+  name: DoodleName;
+  class?: string;
+  stroke?: number;
+  /** true = ikut dianimasikan draw-on saat masuk viewport */
+  draw?: boolean;
+  /** kecepatan parallax scroll (lihat scripts/sections/parallax.js) */
+  parallax?: number;
+  /** atribut lain diteruskan apa adanya (mis. data-nav-doodle) */
+  [key: string]: unknown;
+}
+
+const { name, class: className = '', stroke = 6, draw = false, parallax, ...rest } = Astro.props;
+
+/**
+ * Catatan untuk mata panah: kedua barb harus mengarah BALIK dari ujung, yaitu
+ * pada sudut (arah tangen ujung + 180°) ± ~29°. Arah tangen ujung ditentukan
+ * oleh titik kontrol terakhir menuju titik akhir kurva. Kalau salah satu barb
+ * dipasang searah tangen, mata panahnya berubah jadi kail — itu yang sempat
+ * terjadi pada `arrow`.
+ */
+const shapes: Record<DoodleName, { box: string; d: string[]; fill?: boolean }> = {
+  arrow: {
+    // ujung (108,26), tangen (34,22) ≈ 33° → barb di 185° dan 241°
+    box: '0 0 120 70',
+    d: ['M6,52 C28,10 74,4 108,26', 'M108,26 L88,24', 'M108,26 L98,9'],
+  },
+  'arrow-down': {
+    // ujung (36,110), tangen (-22,44) ≈ 117° → barb di 267° dan 327°
+    box: '0 0 70 120',
+    d: ['M34,6 C10,44 58,66 36,110', 'M36,110 L35,92', 'M36,110 L51,100'],
+  },
+  squiggle: {
+    box: '0 0 140 40',
+    d: ['M6,26 C22,4 34,4 48,22 C62,40 74,40 88,20 C102,2 118,4 134,24'],
+  },
+  star: {
+    box: '0 0 80 80',
+    d: ['M40,8 L47,32 L72,40 L47,48 L40,72 L33,48 L8,40 L33,32 Z'],
+    fill: true,
+  },
+  sparkle: {
+    box: '0 0 60 60',
+    d: ['M30,6 L30,54', 'M6,30 L54,30', 'M13,13 L47,47', 'M47,13 L13,47'],
+  },
+  spiral: {
+    box: '0 0 90 90',
+    d: ['M45,45 C45,35 58,33 62,42 C68,55 52,68 36,62 C14,54 14,26 34,14 C58,0 86,18 86,45'],
+  },
+  underline: {
+    box: '0 0 200 30',
+    d: ['M6,16 C50,26 140,4 194,14'],
+  },
+  zigzag: {
+    box: '0 0 140 40',
+    d: ['M6,30 L34,10 L62,30 L90,10 L118,30 L134,18'],
+  },
+  /**
+   * Coretan marker selebar halaman — pembatas Nutrition → Myths.
+   *
+   * Karakter gelombangnya sengaja sama dengan strikePath() di myths.js, yang
+   * mencoret tiap mitos. Itu intinya: section yang tugasnya mencoret mitos
+   * mengumumkan dirinya dengan mencoret batasnya sendiri.
+   *
+   * Bedanya jumlah gelombang. strikePath() cuma 2 lengkung karena melintasi
+   * satu baris teks; selebar halaman, 2 lengkung terbaca sebagai ombak — dan
+   * ombak sudah punya arti sendiri di situs ini (Scallop). Empat lengkung
+   * dengan amplitudo tidak seragam menjaganya terbaca sebagai goresan tangan.
+   *
+   * Ujungnya sengaja lewat dari x=0 dan x=1440 supaya goresannya terpotong
+   * tepi layar, bukan berhenti rapi di dalamnya.
+   */
+  strike: {
+    box: '0 0 1440 120',
+    d: [
+      'M-30,68 C100,46 200,88 340,64 C470,42 560,80 700,58 C840,38 940,86 1080,62 C1200,44 1320,78 1470,54',
+    ],
+  },
+  burst: {
+    box: '0 0 100 100',
+    d: [
+      'M50,4 L59,34 L88,22 L70,48 L96,62 L66,66 L74,96 L50,76 L26,96 L34,66 L4,62 L30,48 L12,22 L41,34 Z',
+    ],
+    fill: true,
+  },
+};
+
+const shape = shapes[name];
+---
+
+<svg
+  viewBox={shape.box}
+  class={className}
+  fill="none"
+  aria-hidden="true"
+  data-doodle={draw ? '' : null}
+  data-parallax={parallax ?? null}
+  xmlns="http://www.w3.org/2000/svg"
+  {...rest}
+>
+  {
+    shape.d.map((d) =>
+      shape.fill ? (
+        <path d={d} fill="currentColor" stroke="currentColor" stroke-width={stroke * 0.5} stroke-linejoin="round" />
+      ) : (
+        <path
+          d={d}
+          stroke="currentColor"
+          stroke-width={stroke}
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      )
+    )
+  }
+</svg>

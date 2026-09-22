@@ -1,0 +1,88 @@
+---
+/**
+ * Kotak highlight ber-clip-path — motif paling khas SPYLT.
+ *
+ * Sebuah kata kunci dibungkus kotak berwarna dengan border tebal (warnanya
+ * disamakan dengan latar section, jadi kotaknya terlihat seperti "digunting"
+ * dari halaman), dimiringkan beberapa derajat, lalu tersingkap dengan
+ * menganimasikan clip-path polygon.
+ *
+ * Komponen ini hanya menyediakan markup + kondisi awal clip-path. Animasinya
+ * dijalankan script tiap section, karena pemicunya beda-beda: Hero ikut timeline
+ * intro, Message & Nutrition dipicu saat masuk viewport, Benefits di-scrub.
+ */
+interface Props {
+  text: string;
+  /** warna isi kotak */
+  bg: string;
+  /** warna teks di dalam kotak */
+  color: string;
+  /** warna border — samakan dengan latar section supaya efek "guntingan" muncul */
+  border: string;
+  /** derajat kemiringan; SPYLT memakai ±3 */
+  rotate?: number;
+  /** arah singkapan: dari tengah melebar, atau dari kiri ke kanan */
+  from?: 'center' | 'left';
+  /**
+   * Skala ukuran, dari kecil ke besar:
+   *   md  — judul manfaat
+   *   lg  — hero
+   *   xl  — judul varian
+   *   2xl — manifesto (setara 8.5rem-nya SPYLT)
+   */
+  size?: 'md' | 'lg' | 'xl' | '2xl';
+  class?: string;
+}
+
+const {
+  text,
+  bg,
+  color,
+  border,
+  rotate = -3,
+  from = 'center',
+  size = 'lg',
+  class: className = '',
+} = Astro.props;
+
+const initial =
+  from === 'center'
+    ? 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)'
+    : 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)';
+
+const sizes = {
+  '2xl': 'text-[clamp(2.2rem,8.5vw,8.5rem)] tracking-[-0.02em]',
+  xl: 'text-[clamp(2.4rem,7.2vw,6.4rem)] tracking-[-0.01em]',
+  lg: 'text-[clamp(1.8rem,5.8vw,4.8rem)]',
+  md: 'text-[clamp(1.5rem,4.5vw,3.6rem)]',
+};
+---
+
+<div
+  class={`inline-block ${className}`}
+  data-clip-title
+  style={`clip-path:${initial}; transform: rotate(${rotate}deg); border-color:${border}`}
+>
+  <div class="border-[3px] md:border-[6px]" style={`border-color:${border}; background-color:${bg}`}>
+    <!--
+      Padding tegaknya dihitung dari metrik Modak, bukan dikira-kira.
+
+      Modak menaruh kapital jauh di atas dalam line box-nya: ascent 0,99em dan
+      descent 0,51em, tapi tinggi kapitalnya cuma 0,646em. Pada leading 0,9em
+      itu menyisakan 0,044em di atas kapital dan 0,197em di bawahnya — teksnya
+      duduk berat ke bawah sebesar 0,153em sebelum padding apa pun ditambahkan.
+
+      Jadi sisi ATAS justru butuh padding lebih besar 0,153em daripada sisi
+      bawah. Nilai sebelumnya (pt-1/pb-2, yakni atas SETENGAH dari bawah)
+      disetel untuk font lama yang duduk tinggi; dengan Modak arahnya terbalik
+      sehingga kesalahannya berlipat, bukan terkoreksi.
+
+      Satuannya em supaya ikut keempat skala di atas: nilai px tetap akan pas
+      di satu ukuran saja dan meleset di 8,5rem maupun di 1,5rem.
+    -->
+    <span
+      class={`font-display block px-3 pt-[0.24em] pb-[0.08em] leading-[0.9] whitespace-nowrap md:px-6 ${sizes[size]}`}
+      style={`color:${color}`}>{text}</span
+    >
+  </div>
+</div>

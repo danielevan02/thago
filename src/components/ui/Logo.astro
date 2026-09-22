@@ -1,0 +1,116 @@
+---
+import { layoutWordmark } from '../../data/wordmark';
+
+/**
+ * Wordmark Thago — huruf Modak bergaya stiker: isi indigo, garis tepi krem
+ * tebal, dan antar huruf saling bertindih sedikit persis seperti logo yang
+ * tercetak di cup.
+ *
+ * Masih teks, bukan vector asli. Ganti dengan file aslinya begitu ada (cukup
+ * timpa isi <svg> di bawah, ukuran & prop tetap sama).
+ */
+interface Props {
+  class?: string;
+  /** warna isi huruf */
+  color?: string;
+  /** warna garis tepi; samakan dengan warna terang di logo asli */
+  outline?: string;
+  /**
+   * Bayangan halus di bawah garis tepi. Perlu saat logo dipasang di atas latar
+   * yang sewarna dengan garis tepinya — di navbar krem, garis tepi krem tidak
+   * terlihat sama sekali, jadi bentuk stikernya hanya terbaca lewat bayangan.
+   * Matikan kalau logo dipasang di atas latar gelap.
+   */
+  shadow?: boolean;
+}
+const {
+  class: className = '',
+  color = 'currentColor',
+  outline = '#faf5e9',
+  shadow = true,
+} = Astro.props;
+
+const BOX_W = 260;
+const BOX_H = 74;
+
+/**
+ * 74px, turun dari 77 karena kemiringan tiap huruf melebarkan kotaknya: sudut
+ * huruf mengayun keluar di keempat arah, jadi wordmark-nya butuh ruang lebih
+ * baik mendatar maupun tegak. Ukurannya dihitung, bukan dikira; lihat
+ * layoutWordmark.
+ */
+const FONT = 74;
+const { letters, baseline, strokeWidth, capHeight } = layoutWordmark('THAGO', FONT, BOX_W, BOX_H);
+
+// titik putar tegak: tengah tinggi kapital
+const pivotY = baseline - capHeight / 2;
+
+const uid = Math.random().toString(36).slice(2, 8);
+---
+
+<!--
+  `overflow-visible`: saat diam tidak ada yang keluar kotak, tapi animasi
+  stempel di preloader membesarkan huruf melewati tepi viewBox sesaat. Tanpa
+  ini, SVG memotongnya dan huruf terlihat terpenggal saat mendarat.
+-->
+<svg
+  viewBox={`0 0 ${BOX_W} ${BOX_H}`}
+  class={`overflow-visible ${className}`}
+  role="img"
+  aria-label="Thago"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  {
+    shadow && (
+      <defs>
+        <filter id={`logo-shadow-${uid}`} x="-12%" y="-14%" width="124%" height="132%">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2" flood-color="#241463" flood-opacity="0.3" />
+        </filter>
+      </defs>
+    )
+  }
+
+  <!--
+    Bayangan dipasang di GRUP, bukan tiap huruf. Kalau tiap huruf punya
+    bayangan sendiri, huruf yang bertindih akan menjatuhkan bayangan ke
+    tetangganya dan tumpukannya terlihat kotor; di grup, yang berbayang hanya
+    siluet kata utuhnya.
+  -->
+  <g filter={shadow ? `url(#logo-shadow-${uid})` : undefined}>
+    {
+      /*
+        Tiap huruf elemen sendiri, berurutan kiri ke kanan — itulah yang
+        membuat huruf kanan menindih huruf kiri lengkap dengan garis tepinya.
+
+        `paint-order="stroke fill"`: stroke digambar lebih dulu lalu isinya
+        menimpa, jadi yang terlihat hanya separuh stroke di sebelah luar huruf.
+        Tanpa itu stroke terpusat di tepi huruf dan menggerogoti bentuknya.
+
+        `stroke-linejoin="round"` mencegah sudut tajam Modak memanjang jadi
+        duri pada ketebalan segini.
+      */
+      letters.map(({ ch, x, tilt, cx }) => (
+        // Pembungkus <g> ada supaya animasi (mis. stempel masuk di preloader)
+        // punya tempat menulis transform SENDIRI. Kalau dianimasikan langsung
+        // di <text>, GSAP menimpa atribut `transform` yang menyimpan
+        // kemiringan huruf — dan tilt berselang-selingnya hilang.
+        <g data-logo-letter>
+          <text
+            x={x}
+            y={baseline}
+            transform={`rotate(${tilt} ${cx.toFixed(2)} ${pivotY.toFixed(2)})`}
+            font-family="Modak, cursive"
+            font-size={FONT}
+            stroke={outline}
+            stroke-width={strokeWidth}
+            stroke-linejoin="round"
+            paint-order="stroke fill"
+            fill={color}
+          >
+            {ch}
+          </text>
+        </g>
+      ))
+    }
+  </g>
+</svg>

@@ -1,0 +1,32 @@
+---
+/**
+ * Tepi bergelombang ungu.
+ *
+ * Dipakai DUA kali dan itu memang inti perkaranya: sebagai dasar panggung hero,
+ * dan sebagai tudung atas tirai preloader. Saat preloader selesai, tirainya
+ * turun sampai tudung ini mendarat tepat menimpa tepi gelombang hero — lalu
+ * preloader dibuang. Kalau kedua bentuk itu ditulis terpisah, sekali saja
+ * salah satunya diubah, akan ada lompatan satu bingkai di detik pertama
+ * kunjungan. Satu komponen membuat itu mustahil terjadi.
+ *
+ * `preserveAspectRatio="none"` + hanya lebar yang diatur → tingginya selalu
+ * lebar/12. Sama di kedua tempat karena keduanya selebar viewport.
+ */
+interface Props {
+  class?: string;
+  [key: string]: unknown;
+}
+const { class: className = '', ...rest } = Astro.props;
+---
+
+<svg
+  class={`w-full ${className}`}
+  viewBox="0 0 1440 120"
+  preserveAspectRatio="none"
+  aria-hidden="true"
+  {...rest}
+>
+  <path
+    d="M0,64 C120,110 240,110 360,80 C480,50 600,50 720,74 C840,98 960,98 1080,74 C1200,50 1320,50 1440,72 L1440,120 L0,120 Z"
+    fill="currentColor"></path>
+</svg>

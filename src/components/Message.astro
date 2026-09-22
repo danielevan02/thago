@@ -1,0 +1,117 @@
+---
+import Marquee from './ui/Marquee.astro';
+import ClipTitle from './ui/ClipTitle.astro';
+import Fruit from './ui/Fruit.astro';
+
+/**
+ * Section manifesto — mengikuti struktur MessageSection SPYLT:
+ *
+ *   kalimat 1 (redup)  →  kotak highlight tersingkap  →  kalimat 2 (redup)
+ *                              →  paragraf penutup
+ *
+ * Kalimat redup menyala kata per kata mengikuti scroll. Yang dianimasikan
+ * warnanya, bukan opacity — kata yang belum menyala tetap terbaca samar
+ * sebagai bayangan, jadi kalimatnya utuh sejak awal.
+ */
+/**
+ * Copy sengaja dipendekkan. Di ukuran 8.5rem uppercase, kalimat panjang berubah
+ * jadi dinding teks setinggi beberapa layar — SPYLT juga memakai potongan
+ * pendek (±30 karakter) untuk tiap bagian.
+ */
+const FIRST = 'Karena ngemil sehat';
+const SECOND = 'bukan siksaan.';
+---
+
+<section data-message data-nav-theme="dark" class="relative overflow-hidden bg-purple px-5 py-[16vh] md:py-[20vh]">
+  <!-- bahan melayang berparallax — kecepatan beda-beda supaya terasa berlapis -->
+  <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+    <Fruit name="dragonfruit" class="absolute left-[4%] top-[16%] w-12 opacity-80 md:w-20" parallax={0.6} />
+    <Fruit name="strawberry" class="absolute right-[5%] top-[30%] w-10 opacity-80 md:w-16" parallax={0.85} />
+    <Fruit name="chia" class="absolute bottom-[22%] left-[10%] w-10 opacity-70 md:w-14" parallax={0.4} />
+    <Fruit name="ube" class="absolute bottom-[14%] right-[12%] hidden w-14 opacity-80 md:block" parallax={0.5} />
+  </div>
+
+  <div class="relative mx-auto flex max-w-7xl flex-col items-center gap-10 md:gap-20">
+    <span class="font-hand text-lime text-2xl md:text-3xl">kenapa Thago ada?</span>
+
+    {/*
+      Kotak highlight dikeluarkan dari alur layout (absolute), persis seperti
+      .msg-text-scroll di SPYLT. Efeknya dua-arah: kedua baris teks jadi
+      merapat karena kotaknya tidak lagi memakan ruang, dan kotak itu
+      menimpa sedikit baris di atas maupun di bawahnya.
+    */}
+    {/*
+      Jarak antar kalimat memakai clamp ber-vw, bukan angka tetap. Tinggi kotak
+      highlight ikut lebar layar (font-nya 8.5vw), jadi jarak tetap akan pas di
+      satu ukuran layar lalu meleset di ukuran lain — di layar lebar kotaknya
+      menelan kedua baris, di layar sempit malah menggantung tanpa menyentuh.
+      Dengan skala yang sama, porsi tumpang tindihnya konsisten di mana pun.
+    */}
+    <div class="flex flex-col items-center gap-[clamp(3rem,8vw,10rem)]">
+      <div class="relative">
+        <p
+          class="font-display max-w-xs text-center text-[clamp(2.2rem,8.5vw,8.5rem)] leading-[0.92] tracking-[-0.02em] uppercase md:max-w-xl lg:max-w-3xl"
+          data-message-line
+        >
+          {
+            FIRST.split(' ').map((w) => (
+              <span class="mr-[0.26em] inline-block" data-message-word>
+                {w}
+              </span>
+            ))
+          }
+        </p>
+
+        {/*
+          Dijangkarkan ke tepi bawah paragraf pertama, lalu diturunkan setengah
+          tinggi kotak + setengah gap — hasilnya kotak duduk tepat di tengah
+          celah dan menimpa kedua baris secara seimbang. Kalau dipusatkan ke
+          wrapper, posisinya melenceng begitu salah satu paragraf beda jumlah
+          barisnya.
+        */}
+        {/* w-max + left-1/2: kotak harus bebas dari lebar paragraf di atasnya,
+            kalau tidak teksnya terpaksa pecah jadi dua baris.
+            Geser vertikalnya = setengah tinggi kotak + setengah jarak, jadi
+            angka clamp di bawah HARUS separuh dari gap wrapper di atas. */}
+        <div
+          class="absolute bottom-0 left-1/2 z-10 w-max -translate-x-1/2 translate-y-[calc(50%+clamp(1.5rem,4vw,5rem))]"
+        >
+          <ClipTitle
+            text="HARUS ENAK"
+            bg="#b4d63c"
+            color="#241463"
+            border="#5e2ca5"
+            rotate={3}
+            size="2xl"
+          />
+        </div>
+      </div>
+
+      <p
+        class="font-display max-w-xs text-center text-[clamp(2.2rem,8.5vw,8.5rem)] leading-[0.92] tracking-[-0.02em] uppercase md:max-w-2xl lg:max-w-6xl"
+        data-message-line
+      >
+        {
+          SECOND.split(' ').map((w) => (
+            <span class="mr-[0.26em] inline-block" data-message-word>
+              {w}
+            </span>
+          ))
+        }
+      </p>
+    </div>
+
+    <div class="max-w-md px-4">
+      <p class="text-cream/80 text-center text-base leading-relaxed md:text-lg" data-message-para>
+        Makanya kami bikin chia pudding yang manisnya datang dari buah, bukan
+        dari gula tambahan. Biar kamu bisa ngemil enak tanpa mikir dua kali.
+      </p>
+    </div>
+  </div>
+
+  <Marquee
+    items={['NO SUGAR', 'REAL FRUIT', 'HIGH FIBER', 'OMEGA-3', 'BIKIN KENYANG']}
+    class="text-lime/90 font-display mt-[10vh] text-[clamp(1.4rem,3.4vw,2.6rem)]"
+    speed={70}
+  />
+</section>

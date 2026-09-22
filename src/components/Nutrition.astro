@@ -1,0 +1,238 @@
+---
+import Marquee from './ui/Marquee.astro';
+import MediaSlot from './ui/MediaSlot.astro';
+import ClipTitle from './ui/ClipTitle.astro';
+import ProductVisual from './ui/ProductVisual.astro';
+import Doodle from './ui/Doodle.astro';
+import { products } from '../data/products';
+
+/**
+ * Section nutrisi — konsep "Label Gizi Raksasa".
+ *
+ * Satu kartu besar meniru panel "Informasi Nilai Gizi" di kemasan asli
+ * (format BPOM: takaran saji, %AKG, footnote 2150 kkal) tapi digambar dengan
+ * bahasa visual Thago: miring ala stiker, angka count-up, bar %AKG yang terisi
+ * mengikuti scroll, dan stempel "TANPA GULA TAMBAHAN" yang menghantam masuk.
+ * Cup mengintip dari balik label, plus satu foto polaroid tertempel di sudutnya.
+ *
+ * Angkanya sekarang nyata: diambil dari stiker tutup cup dan diturunkan dari
+ * products.ts, bukan diketik ulang di sini.
+ */
+/**
+ * Label ini menampilkan SATU varian, bukan rata-rata: jaraknya terlalu jauh
+ * untuk dirata-ratakan dengan jujur (196 kkal di Plain, 284 di Tiramisu).
+ * Yang dipakai varian pertama, yang cup-nya juga mengintip di sebelah kartu —
+ * jadi angka dan fotonya selalu bicara soal produk yang sama.
+ */
+const cup = products[0];
+
+/**
+ * Angka AKG acuan BPOM untuk kebutuhan energi 2150 kkal — sama dengan yang
+ * dicetak di kemasan pangan di Indonesia. %AKG DIHITUNG dari data produk,
+ * tidak diketik ulang: sebelumnya baris di sini dan `nutrition` di
+ * products.ts adalah dua sumber terpisah yang pasti berselisih begitu salah
+ * satunya diperbarui.
+ */
+const AKG = { kcal: 2150, protein: 60, fiber: 30, carbs: 325, fat: 67 };
+const pct = (value: number, acuan: number) => Math.round((value / acuan) * 100);
+
+const rows = [
+  { label: 'Energi Total', value: cup.nutrition.kcal, suffix: 'kkal', akg: pct(cup.nutrition.kcal, AKG.kcal) },
+  { label: 'Protein', value: cup.nutrition.protein, suffix: 'g', akg: pct(cup.nutrition.protein, AKG.protein) },
+  { label: 'Serat Pangan', value: cup.nutrition.fiber, suffix: 'g', akg: pct(cup.nutrition.fiber, AKG.fiber) },
+  { label: 'Karbohidrat Total', value: cup.nutrition.carbs, suffix: 'g', akg: pct(cup.nutrition.carbs, AKG.carbs) },
+  { label: 'Lemak Total', value: cup.nutrition.fat, suffix: 'g', akg: pct(cup.nutrition.fat, AKG.fat) },
+  /**
+   * "Gula Tambahan", bukan "Gula".
+   *
+   * Stiker tutup aslinya tidak memecah gula sama sekali — yang tertulis di
+   * sana "(use stevia)" dan karbohidrat total. Karbo itu datang dari buah,
+   * susu, dan oat, yang jelas mengandung gula alami, jadi "0 g gula" adalah
+   * klaim yang tidak didukung apa pun. Yang memang didukung: mereka tidak
+   * MENAMBAHKAN gula, pemanisnya stevia. Jangan dikembalikan tanpa hasil lab.
+   */
+  { label: 'Gula Tambahan', value: 0, suffix: 'g', akg: 0, hot: true },
+];
+---
+
+<section data-nutrition data-nav-theme="dark" class="relative overflow-hidden bg-indigo py-24 md:py-32">
+  <Marquee
+    items={['ANGKA YANG JUJUR', 'BACA LABELNYA', 'NGGAK ADA YANG DISEMBUNYIIN']}
+    class="text-cream/15 font-display absolute inset-x-0 top-6 text-[clamp(2.4rem,7vw,6rem)]"
+    speed={40}
+    reverse
+  />
+
+  <div class="relative mx-auto grid max-w-6xl items-center gap-14 px-5 md:grid-cols-2 md:gap-10">
+    <!-- kolom kiri: judul + pengantar -->
+    <div class="flex flex-col items-center text-center md:items-start md:text-left">
+      <span class="font-hand text-lime text-2xl md:text-3xl">per satu cup</span>
+      <div class="mt-2 overflow-hidden">
+        <h2 class="display-md text-cream" data-nutrition-title>ANGKA YANG</h2>
+      </div>
+      <ClipTitle text="JUJUR" bg="#b4d63c" color="#241463" border="#2f1b9c" rotate={-3} class="mt-3" />
+
+      <p class="text-cream/75 mt-8 max-w-sm text-base leading-relaxed md:text-lg" data-nutrition-para>
+        Kami cetak angkanya gede-gedean, persis kayak di label kemasan. Karena
+        kalau isinya beneran bersih, nggak ada yang perlu ditutup-tutupi.
+      </p>
+
+      <Doodle
+        name="arrow"
+        class="text-lime mt-8 hidden w-24 -scale-y-100 rotate-12 md:block"
+        stroke={7}
+        draw
+        parallax={0.3}
+      />
+    </div>
+
+    <!-- kolom kanan: komposisi label -->
+    <div class="relative mx-auto w-full max-w-md pb-14 md:pb-10">
+      {/*
+        Cup mengintip dari balik label.
+
+        Yang terlihat = besar pergeseran ke kiri, BUKAN lebar cup-nya. Dulu
+        -left-10 (40px) pada cup selebar 160px, jadi cuma 25% yang muncul dan
+        terbaca seperti benda nyasar, bukan disengaja. Sekarang tergeser
+        setengah lebarnya sendiri.
+
+        Batas amannya diukur dari kolom, bukan dikira-kira: kolom kanan
+        max-w-md (448px) duduk di dalam kolom grid ~472px pada 1024px, jadi
+        slack-nya cuma ~12px — sisanya masuk ke gap 40px lalu ke sisi kanan
+        kolom kiri, yang kosong karena paragrafnya max-w-sm dan rata kiri.
+        Di xl kolomnya melebar jadi ~556px sehingga muat digeser lebih jauh.
+
+        Tetap lg: ke bawah kolomnya terlalu sempit dan cup-nya akan menabrak
+        teks, bukan ruang kosong.
+      */}
+      <div
+        class="absolute top-1/2 -left-24 z-0 hidden w-48 -translate-y-1/2 -rotate-12 lg:block xl:-left-32 xl:w-56"
+        data-nutrition-cup
+      >
+        <ProductVisual product={cup} class="drop-shadow-[0_16px_28px_rgba(0,0,0,0.35)]" />
+      </div>
+
+      <!-- kartu label gizi -->
+      <div
+        class="bg-cream relative z-10 rounded-2xl p-6 shadow-[0_16px_0_rgba(0,0,0,0.25)] md:p-8"
+        style="rotate: -2deg"
+        data-nutrition-card
+      >
+        <h3 class="font-display text-ink text-3xl leading-none md:text-4xl">
+          INFORMASI<br />NILAI GIZI
+        </h3>
+        {/* Nama variannya WAJIB disebut. Rentang antar varian lebar sekali
+            (196–284 kkal), jadi label tanpa nama akan terbaca seolah berlaku
+            untuk semuanya. */}
+        <p class="text-ink/70 mt-2 text-xs font-medium md:text-sm">
+          {cup.name} &middot; Takaran saji: 1 cup &middot; Jumlah sajian per kemasan: 1
+        </p>
+
+        <div class="bg-ink mt-3 h-2.5 rounded-full"></div>
+
+        <dl class="mt-4 flex flex-col">
+          {
+            rows.map((r) => (
+              <div class="border-ink/15 border-b-2 py-3 last:border-b-0">
+                <div class="flex items-baseline justify-between gap-3">
+                  <dt
+                    class={`font-body text-sm font-semibold md:text-base ${r.hot ? 'text-pink' : 'text-ink'}`}
+                  >
+                    {r.label}
+                  </dt>
+                  {/*
+                    Fredoka, bukan Modak. Modak cuma dikirim dalam satu berat,
+                    jadi tidak ada tuas untuk menipiskannya — sedangkan Fredoka
+                    punya sumbu 300–700. Setel beratnya di `font-semibold` ini.
+
+                    tabular-nums: angkanya dianimasikan count-up (data-stat-value).
+                    Tanpa lebar digit yang seragam, "180" yang menghitung naik
+                    membuat baris ini bergoyang di setiap perubahan angka.
+                  */}
+                  <dd
+                    class={`font-body text-2xl leading-none font-semibold tabular-nums md:text-3xl ${r.hot ? 'text-pink' : 'text-ink'}`}
+                  >
+                    <span data-stat-value data-to={r.value}>{r.value}</span>{r.suffix}
+                  </dd>
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                  {/* lebar akhir ditulis inline supaya tanpa JS bar tetap terisi */}
+                  <div class="bg-ink/10 h-2 flex-1 overflow-hidden rounded-full">
+                    <div
+                      class={`h-full origin-left rounded-full ${r.hot ? 'bg-pink' : 'bg-purple'}`}
+                      style={`width:${Math.max(r.akg, 1)}%`}
+                      data-akg-bar
+                      data-pct={r.akg}
+                    />
+                  </div>
+                  <span class="text-ink/55 w-12 text-right text-[11px] font-semibold">
+                    {r.akg}% AKG
+                  </span>
+                </div>
+                {/* pr sama dengan footnote di bawah: baris ini duduk tepat di
+                    ketinggian polaroid yang menempel di sudut kanan bawah, dan
+                    tanpa ruang itu teksnya menyelinap ke bawah polaroid di
+                    lebar 768px — kolom paling sempit yang masih dua kolom. */}
+                {r.hot && (
+                  <p class="font-hand text-pink mt-1.5 pr-28 text-lg leading-tight md:pr-36">
+                    manisnya dari stevia, bukan gula 👌
+                  </p>
+                )}
+              </div>
+            ))
+          }
+        </dl>
+
+        {/* pr besar: menyisakan ruang untuk polaroid yang menimpa sudut kanan bawah */}
+        <p class="text-ink/50 mt-4 pr-28 text-[10px] leading-snug md:pr-36 md:text-[11px]">
+          *Persen AKG berdasarkan kebutuhan energi 2150 kkal. Kebutuhan energimu
+          mungkin lebih tinggi atau lebih rendah.
+        </p>
+
+        <!-- stempel karet -->
+        <div
+          class="absolute -right-5 -top-7 z-20 flex h-28 w-28 rotate-[-14deg] items-center justify-center rounded-full border-4 border-pink md:-right-9 md:h-32 md:w-32"
+          data-nutrition-stamp
+        >
+          <div
+            class="border-pink text-pink flex h-[86%] w-[86%] flex-col items-center justify-center rounded-full border-2 border-dashed text-center"
+          >
+            <span class="font-body text-[10px] leading-none font-semibold tracking-[0.18em]">
+              TANPA
+            </span>
+            <span class="font-display mt-0.5 text-xl leading-none md:text-2xl">GULA</span>
+            <span class="font-body text-[9px] leading-none font-semibold tracking-[0.14em] md:text-[10px]">
+              TAMBAHAN
+            </span>
+            <span class="font-hand mt-0.5 text-base leading-none">jujur!</span>
+          </div>
+        </div>
+
+        <!-- polaroid bukti, tertempel di sudut -->
+        <div
+          class="absolute -bottom-12 -right-3 z-20 w-32 rotate-6 bg-white p-1.5 pb-5 shadow-[0_8px_18px_rgba(0,0,0,0.3)] md:-right-8 md:w-40"
+          data-nutrition-polaroid
+        >
+          <div class="bg-lime/80 absolute -top-2.5 left-1/2 h-5 w-14 -translate-x-1/2 -rotate-3"></div>
+          {/*
+            600×600 dari sumber 3312×3108. Polaroid ini cuma selebar ~152px di
+            layar, jadi 600px sudah menutup layar retina 3× dengan sisa. Aslinya
+            disimpan di raw/ — bukan di public/, karena isi public/ semuanya
+            ikut terkirim ke pengunjung.
+
+            alt diisi sungguhan, bukan dikosongkan: polaroid ini berlabel
+            "buktinya" dan memang membawa isi, bukan hiasan.
+          */}
+          <MediaSlot
+            src="/photo/nutrition-macro.jpg"
+            alt="Sesendok chia pudding cokelat dengan irisan pisang bertabur kayu manis"
+            note="Close-up macro: pudding disendok"
+            ratio="1/1"
+            tone="purple"
+          />
+          <p class="font-hand text-ink/70 absolute bottom-0.5 left-0 w-full text-center text-sm">buktinya 📸</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

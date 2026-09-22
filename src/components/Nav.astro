@@ -1,0 +1,177 @@
+---
+import Logo from './ui/Logo.astro';
+import Scallop from './ui/Scallop.astro';
+import Doodle from './ui/Doodle.astro';
+import { orderLinks } from '../data/products';
+
+/**
+ * Navigasi: satu tombol dua strip di tengah atas, membuka menu selayar penuh.
+ *
+ * Yang permanen di layar cuma tombol itu. Logo dan semua tautan pindah ke
+ * dalam menu — nama brand sudah tampil raksasa di hero, jadi logo kecil yang
+ * menempel di bar hanya mengulanginya.
+ */
+// Urutannya WAJIB sama dengan urutan section di index.astro — menu selayar
+// penuh ini satu-satunya navigasi yang ada, dan urutan yang tidak cocok
+// membuat orang mengira mereka melewatkan sesuatu.
+const links = [
+  { label: 'Varian', href: '#varian' },
+  { label: 'Minuman', href: '#minuman' },
+  { label: 'Manfaat', href: '#manfaat' },
+  { label: 'Fakta', href: '#fakta' },
+  { label: 'Kata Mereka', href: '#testimoni' },
+];
+
+/** Kemiringan tiap tautan, meneruskan bahasa stiker brand. */
+const tilt = [-1.6, 1.2, -1.1, 1.5, -1.3];
+
+/*
+  Ukuran tautan diturunkan dari clamp(2.6rem, 11vw, 4.6rem) ke
+  clamp(2.4rem, 10vw, 4.1rem) begitu tautan kelima masuk.
+
+  Patokannya laptop 1366×640 — tinggi layar tersempit yang masih umum. Di situ
+  jarak antar blok (10vh) + logo (~84px) + blok CTA (~84px) menyisakan ~408px
+  untuk daftar tautan, sementara lima baris 4.6rem menuntut ~410px. Menunya
+  mulai terpotong tepat di ukuran itu, jadi batas atasnya yang dikecilkan,
+  bukan jaraknya — merapatkan jarak akan merusak ritme menu di layar besar.
+*/
+---
+
+<!--
+  Tombol: dua strip telanjang, tanpa kapsul, border, maupun bayangan.
+
+  Konsekuensinya latar di belakangnya tidak lagi dikendalikan siapa pun, dan
+  warna section berganti drastis sepanjang halaman (krem → ungu → indigo →
+  ungu tua). Karena itu tiap section gelap ditandai `data-nav-theme="dark"`
+  dan nav.js menukar warna stripnya jadi krem saat melewatinya — tanpa itu
+  stripnya lenyap total di lima section.
+
+  Area kliknya tetap dilebarkan lewat padding meski stripnya kecil: 48px
+  adalah ambang sasaran sentuh yang layak, dan strip setinggi 14px sendirian
+  jauh di bawah itu.
+-->
+<header
+  data-nav
+  class="pointer-events-none fixed inset-x-0 top-0 z-[95] flex justify-center px-4 pt-3 md:pt-4"
+>
+  <button
+    type="button"
+    data-nav-toggle
+    data-nav-item
+    aria-expanded="false"
+    aria-controls="menu-utama"
+    aria-label="Buka menu"
+    class="pointer-events-auto grid h-12 w-12 cursor-pointer place-items-center transition-transform active:scale-90 md:h-14 md:w-14"
+  >
+    <!-- Kotak setinggi 14px dengan satu strip menempel di atas dan satu di
+         bawah. Untuk jadi silang, keduanya tinggal bertemu di tengah lalu
+         berputar ±45° — dua strip justru lebih bersih daripada tiga, karena
+         tidak ada strip tengah yang harus disembunyikan. -->
+    <span class="relative block h-[14px] w-9 md:w-11" data-nav-bars>
+      <span class="bg-ink absolute inset-x-0 top-0 block h-[3px] rounded-full" data-nav-bar></span>
+      <span class="bg-ink absolute inset-x-0 bottom-0 block h-[3px] rounded-full" data-nav-bar></span>
+    </span>
+  </button>
+</header>
+
+<!--
+  Menu selayar penuh. Tirainya memakai motif yang sama dengan preloader —
+  ungu dengan tepi bergelombang — hanya arahnya kebalikan: preloader turun
+  pergi, menu ini turun datang. Komponen <Scallop> yang sama dibalik tegak
+  supaya gelombangnya menghadap ke bawah.
+-->
+<div
+  id="menu-utama"
+  data-nav-menu
+  class="invisible fixed inset-0 z-[90]"
+  aria-hidden="true"
+>
+  <div data-nav-curtain class="absolute inset-x-0 top-0 h-screen">
+    <div class="bg-purple absolute inset-0"></div>
+    <!-- -mt-px: blok solid dan gelombang bertemu di batas subpiksel, dan tanpa
+         tumpangan 1px ini muncul garis tipis melintang selebar layar. -->
+    <Scallop class="text-purple absolute inset-x-0 top-full -mt-px -scale-y-100" />
+  </div>
+
+  <!--
+    Doodle. Menu selayar penuh yang cuma bidang ungu polos terasa seperti
+    overlay bawaan template; coretan inilah yang membuatnya milik Thago.
+
+    `data-nav-doodle`, dan SENGAJA TANPA prop `draw`: prop itu menyerahkan
+    penggambarannya ke initDoodles(), yang memicunya lewat ScrollTrigger —
+    tidak masuk akal untuk menu yang melayang dan tidak pernah tergulir.
+    Ketiganya digambar dari dalam timeline menu, lihat nav.js.
+  -->
+  <Doodle
+    name="squiggle"
+    class="text-lime absolute top-[16%] left-[7%] w-16 md:w-28"
+    stroke={7}
+    data-nav-doodle
+  />
+  <Doodle
+    name="sparkle"
+    class="text-yellow absolute right-[10%] bottom-[26%] w-7 md:w-12"
+    stroke={6}
+    data-nav-doodle
+  />
+  <Doodle
+    name="spiral"
+    class="text-pink absolute right-[12%] top-[18%] hidden w-16 md:block"
+    stroke={6}
+    data-nav-doodle
+  />
+
+  <div class="relative flex h-full flex-col items-center justify-center gap-[5vh] px-6">
+    <div class="text-indigo w-[46vw] max-w-[240px]" data-nav-reveal>
+      <Logo class="w-full" />
+    </div>
+
+    <!-- Tautan rata kiri sebagai satu blok yang dipusatkan, dengan nomor urut.
+         Rata tengah membuat keempatnya mengambang tanpa pegangan; rata kiri
+         plus nomor memberi mereka tepi yang sama untuk disandari. -->
+    <nav class="flex flex-col items-start" aria-label="Navigasi utama">
+      {
+        links.map((l, i) => (
+          // Kemiringan ditaruh di pembungkus LUAR, sementara topeng
+          // overflow-hidden ada di dalamnya. Kalau tautannya sendiri yang
+          // dimiringkan, sudut hurufnya tersayat tepi topeng saat naik.
+          <span class="block" style={`rotate:${tilt[i]}deg`}>
+            <span class="block overflow-hidden py-[0.35vh]">
+              <a
+                href={l.href}
+                data-nav-link
+                class="font-display text-cream hover:text-lime flex items-baseline gap-3 text-[clamp(2.4rem,10vw,4.1rem)] leading-[1.04] transition-colors duration-200 md:gap-5"
+              >
+                {/* Nomor pakai huruf body: di ukuran sekecil ini glyph angka
+                    Modak menyatu jadi noda, sama seperti "%" di preloader. */}
+                <span class="text-lime font-body text-[0.24em] font-semibold tracking-[0.2em]">
+                  0{i + 1}
+                </span>
+                {l.label}
+              </a>
+            </span>
+          </span>
+        ))
+      }
+    </nav>
+
+    <div class="flex flex-col items-center gap-4" data-nav-reveal>
+      <a
+        href={orderLinks.whatsapp}
+        target="_blank"
+        rel="noopener"
+        class="btn-bubble bg-lime text-ink px-7 text-base md:text-lg"
+      >
+        Pesan Sekarang
+      </a>
+      <a
+        href={orderLinks.instagram}
+        target="_blank"
+        rel="noopener"
+        class="text-cream/70 hover:text-cream text-sm tracking-wide transition-colors"
+      >
+        @thago.id
+      </a>
+    </div>
+  </div>
+</div>

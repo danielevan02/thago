@@ -1,0 +1,206 @@
+---
+import { layoutWordmark } from '../../data/wordmark';
+
+/**
+ * ILUSTRASI PLACEHOLDER — pengganti foto cup asli.
+ *
+ * Begitu foto produk (PNG background transparan) sudah ada, isi field `photo`
+ * di src/data/products.ts. Komponen <ProductVisual> otomatis memakai foto itu
+ * dan ilustrasi ini berhenti dipakai. Ukuran/proporsi sengaja dibuat mirip cup
+ * asli supaya layout tidak bergeser saat aset ditukar.
+ */
+interface Props {
+  pudding?: string;
+  puddingBottom?: string;
+  topping?: string;
+  label?: string;
+  class?: string;
+}
+
+const {
+  pudding = '#9b6ad8',
+  puddingBottom = '#6b3aa8',
+  topping = '#e52c74',
+  label = 'Thago chia pudding',
+  class: className = '',
+} = Astro.props;
+
+// id unik supaya beberapa cup di satu halaman tidak saling menimpa clip-path
+const uid = Math.random().toString(36).slice(2, 8);
+
+/**
+ * Wordmark di badan cup, ditata dengan aturan yang sama seperti <Logo>: tiap
+ * huruf elemen sendiri supaya garis tepinya tidak melebur dan huruf bisa
+ * saling bertindih.
+ *
+ * Kotak 300 = lebar viewBox cup, jadi hasilnya terpusat di x=150 seperti
+ * sebelumnya. 42px dipilih dari lebar itu — tumpangan antar huruf memendekkan
+ * kata, sehingga lebar bergaris tepinya 134 dari 151 lebar badan cup di
+ * ketinggian ini.
+ */
+const WORDMARK_SIZE = 42;
+const WORDMARK_BASELINE = 272;
+const wordmark = layoutWordmark('THAGO', WORDMARK_SIZE, 300, 0);
+
+const chia = [
+  [92, 196], [128, 178], [176, 190], [214, 210], [104, 244], [150, 232],
+  [196, 258], [118, 286], [172, 300], [210, 168], [82, 224], [148, 266],
+];
+
+const toppings = [
+  { x: 96, y: 140, r: 17, rot: -14 },
+  { x: 134, y: 128, r: 20, rot: 8 },
+  { x: 176, y: 132, r: 18, rot: 22 },
+  { x: 210, y: 144, r: 15, rot: -6 },
+  { x: 152, y: 150, r: 14, rot: 32 },
+];
+---
+
+<svg
+  viewBox="0 0 300 372"
+  class={className}
+  role="img"
+  aria-label={label}
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <clipPath id={`cup-${uid}`}>
+      <path d="M50,108 L80,310 Q82,326 150,326 Q218,326 220,310 L250,108 Z" />
+    </clipPath>
+    <linearGradient id={`glass-${uid}`} x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55" />
+      <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.05" />
+      <stop offset="0.75" stop-color="#ffffff" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.4" />
+    </linearGradient>
+  </defs>
+
+  <!-- bayangan di bawah cup -->
+  <ellipse cx="150" cy="336" rx="86" ry="14" fill="#241463" opacity="0.12" />
+
+  <!-- badan cup (plastik bening) -->
+  <path
+    d="M50,108 L80,310 Q82,326 150,326 Q218,326 220,310 L250,108 Z"
+    fill="#ffffff"
+    fill-opacity="0.5"
+  />
+
+  <g clip-path={`url(#cup-${uid})`}>
+    <!-- lapisan pudding -->
+    <rect x="0" y="214" width="300" height="140" fill={puddingBottom} />
+    <rect x="0" y="152" width="300" height="64" fill={pudding} />
+    <ellipse cx="150" cy="215" rx="120" ry="12" fill={puddingBottom} opacity="0.6" />
+    <!-- permukaan pudding -->
+    <ellipse cx="150" cy="152" rx="94" ry="15" fill={pudding} />
+    <ellipse cx="150" cy="152" rx="94" ry="15" fill="#ffffff" opacity="0.22" />
+
+    <!-- biji chia -->
+    {
+      chia.map(([cx, cy], i) => (
+        <ellipse
+          cx={cx}
+          cy={cy}
+          rx="3.4"
+          ry="2.6"
+          fill="#241463"
+          opacity={i % 3 === 0 ? 0.5 : 0.34}
+          transform={`rotate(${(i * 37) % 90} ${cx} ${cy})`}
+        />
+      ))
+    }
+
+    <!-- kilau kaca -->
+    <rect x="0" y="100" width="300" height="240" fill={`url(#glass-${uid})`} />
+  </g>
+
+  <!-- topping di atas pudding -->
+  {
+    toppings.map((t, i) => (
+      <g transform={`rotate(${t.rot} ${t.x} ${t.y})`}>
+        <rect
+          x={t.x - t.r / 2}
+          y={t.y - t.r / 2}
+          width={t.r}
+          height={t.r}
+          rx={t.r * 0.32}
+          fill={topping}
+          opacity={i % 2 === 0 ? 1 : 0.82}
+        />
+        <circle cx={t.x - t.r * 0.12} cy={t.y - t.r * 0.14} r="1.6" fill="#241463" opacity="0.55" />
+      </g>
+    ))
+  }
+
+  <!-- outline badan cup -->
+  <path
+    d="M50,108 L80,310 Q82,326 150,326 Q218,326 220,310 L250,108"
+    fill="none"
+    stroke="#241463"
+    stroke-opacity="0.35"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+
+  <!--
+    Wordmark THAGO di badan cup — stiker bergaris tepi krem, huruf saling
+    bertindih, sama seperti logo yang tercetak di cup asli. Di sinilah garis
+    tepinya paling berperan: di atas pudding yang gelap, huruf indigo polos
+    nyaris hilang.
+
+    Ukurannya dibatasi lebar badan cup di ketinggian ini: sisi cup melandai
+    dari 50→80 dan 250→220, jadi di y=272 badannya cuma 151px.
+  -->
+  <g transform="rotate(-1.5 150 272)">
+    {
+      wordmark.letters.map(({ ch, x, tilt, cx }) => (
+        <text
+          x={x}
+          y={WORDMARK_BASELINE}
+          transform={`rotate(${tilt} ${cx.toFixed(2)} ${(WORDMARK_BASELINE - wordmark.capHeight / 2).toFixed(2)})`}
+          font-family="Modak, cursive"
+          font-size={WORDMARK_SIZE}
+          fill="#2f1b9c"
+          stroke="#faf5e9"
+          stroke-width={wordmark.strokeWidth}
+          stroke-linejoin="round"
+          paint-order="stroke fill"
+        >
+          {ch}
+        </text>
+      ))
+    }
+  </g>
+
+  <!-- tutup -->
+  <path
+    d="M42,104 Q42,84 150,84 Q258,84 258,104 Q258,120 150,120 Q42,120 42,104 Z"
+    fill="#ffffff"
+    fill-opacity="0.72"
+    stroke="#241463"
+    stroke-opacity="0.3"
+    stroke-width="3"
+  />
+  <ellipse cx="150" cy="98" rx="108" ry="19" fill="#ffffff" fill-opacity="0.55" />
+
+  <!-- stiker bulat di tutup -->
+  <circle cx="150" cy="96" r="33" fill="#5e2ca5" />
+  <circle cx="150" cy="96" r="33" fill="none" stroke="#241463" stroke-opacity="0.25" stroke-width="2" />
+  <text
+    x="150"
+    y="93"
+    text-anchor="middle"
+    font-family="Caveat Variable, cursive"
+    font-size="17"
+    font-weight="600"
+    fill="#faf5e9">chia</text
+  >
+  <text
+    x="150"
+    y="109"
+    text-anchor="middle"
+    font-family="Caveat Variable, cursive"
+    font-size="17"
+    font-weight="600"
+    fill="#faf5e9">pudding</text
+  >
+</svg>

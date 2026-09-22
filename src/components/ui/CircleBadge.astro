@@ -1,0 +1,88 @@
+---
+import Doodle from './Doodle.astro';
+
+/**
+ * Stempel brand — proporsinya porting dari VideoPinCompo + .play-btn di remake
+ * SPYLT, tapi maknanya sengaja diubah:
+ *
+ *   .play-btn { size-[9vw] bg-[#ffffff1a] rounded-full }   // + blur, lihat bawah
+ *   img:first-of-type { size-[15vw] }   // cincin teks berputar
+ *
+ * DULUNYA berisi segitiga play. Itu dibuang karena berbohong dua kali: badge
+ * ini `pointer-events-none`, jadi tidak pernah bisa diklik; dan sejak
+ * pemutaran dimajukan ke 'top bottom' (lihat videopin.js), videonya sudah
+ * BERJALAN saat badge masih terlihat — ikon play menandakan keadaan yang tidak
+ * pernah ada. Sparkle tidak menjanjikan interaksi apa pun, jadi lingkaran +
+ * teks melingkarnya terbaca sebagai segel kemasan, bukan kontrol pemutar.
+ *
+ * Referensi memakai `backdrop-blur-xl` di disc-nya supaya piksel video tembus
+ * dan mengabur. Di sini blur itu DIBUANG — bukan karena tidak bagus, tapi
+ * karena badge ini hidup di dalam elemen yang clip-path-nya dianimasikan, dan
+ * `backdrop-filter` di situ memunculkan kotak putih berkedip selama
+ * pengembangan. Alasan lengkapnya ditulis di markup disc-nya.
+ *
+ * Proporsinya dipertahankan relatif terhadap lebar komponen (bukan vw), supaya
+ * satu komponen ini bisa dipakai di ukuran berapa pun:
+ *   cincin teks 100%  ·  disc 60% (9/15)  ·  sparkle 23% dari cincin
+ */
+interface Props {
+  text?: string;
+  class?: string;
+}
+const { text = 'THAGO • SEHAT BISA ENAK • ', class: className = '' } = Astro.props;
+
+// diulang supaya keliling lingkaran terisi penuh
+const ring = text.repeat(2);
+const uid = Math.random().toString(36).slice(2, 8);
+---
+
+<div
+  class={`pointer-events-none relative flex items-center justify-center ${className}`}
+  aria-hidden="true"
+>
+  <svg viewBox="0 0 200 200" class="w-full animate-[badge-spin_20s_linear_infinite]">
+    <defs>
+      <path id={`ring-${uid}`} d="M100,100 m-82,0 a82,82 0 1,1 164,0 a82,82 0 1,1 -164,0" fill="none" />
+    </defs>
+    <text class="font-display" fill="#faf5e9" font-size="16" letter-spacing="1.6">
+      <textPath href={`#ring-${uid}`} startOffset="0">{ring}</textPath>
+    </text>
+  </svg>
+
+  <!--
+    Disc 60% dari cincin, persis rasio 9vw : 15vw milik referensi.
+
+    TANPA `backdrop-blur`, dan itu bukan penyederhanaan — itu perbaikan bug.
+
+    Disc ini hidup DI DALAM elemen yang clip-path-nya di-scrub saat lingkaran
+    mengembang. `backdrop-filter` memaksa browser menyampel ulang piksel di
+    belakangnya setiap frame, sementara area klipingnya terus berubah; saat
+    buffer sampelnya belum siap, yang tergambar kotak putih sebesar layer
+    komposit — kedipan putih yang muncul persis selama pengembangan.
+
+    Isian putih transparan dinaikkan dari 10% ke 16% supaya disc-nya tetap
+    terbaca tanpa blur. Kalau efek kaca itu benar-benar dibutuhkan lagi, jangan
+    dikembalikan begitu saja: ia harus dimatikan selama clip-path bergerak.
+  -->
+  <div class="absolute flex h-[60%] w-[60%] items-center justify-center rounded-full bg-white/16">
+    <!--
+      Sparkle 38% dari tombol — lebih besar dari segitiga lamanya yang 33%,
+      karena bentuk bergaris terbaca lebih ringan daripada bentuk masif pada
+      ukuran yang sama.
+
+      TIDAK ada geser optis di sini. Segitiga play dulu perlu ml-[5%] sebab
+      massanya menumpuk di kiri sementara ujungnya menunjuk ke kanan; sparkle
+      simetris di kedua sumbu, jadi menggesernya malah membuatnya terlihat
+      melenceng.
+    -->
+    <Doodle name="sparkle" class="text-cream w-[38%]" stroke={7} />
+  </div>
+</div>
+
+<style>
+  @keyframes badge-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>

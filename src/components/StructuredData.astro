@@ -1,0 +1,118 @@
+---
+import { products, drinks, orderLinks, WHATSAPP, HOURS } from '../data/products';
+
+/**
+ * JSON-LD untuk halaman depan.
+ *
+ * TIPENYA `Organization`, BUKAN `LocalBusiness`. Dua alasan, dan yang kedua
+ * yang mengunci:
+ *
+ *   1. `LocalBusiness` untuk usaha yang DIDATANGI pelanggan. Thago diproduksi
+ *      di rumah dan semuanya diantar — tidak ada tempat untuk dikunjungi.
+ *   2. `LocalBusiness` mewajibkan `address`. Mengisinya berarti menuliskan
+ *      alamat rumah pemiliknya permanen di source halaman, terbaca siapa pun.
+ *      Jangan, dengan alasan apa pun.
+ *
+ * Kalau nanti ada outlet, barulah tipenya naik jadi `LocalBusiness` dengan
+ * alamat outlet itu — bukan alamat rumah. Selama belum, jangkauan pengiriman
+ * bisa dinyatakan lewat `areaServed` di level kota tanpa alamat jalan; field
+ * itu sengaja dikosongkan sampai areanya dipastikan.
+ *
+ * HARGA di sini WAJIB sama dengan yang tampil di kartu produk. Google
+ * memperlakukan harga yang hanya ada di structured data sebagai pelanggaran
+ * policy. Keduanya membaca `price` dari products.ts, jadi tidak bisa berselisih.
+ */
+const site = (Astro.site ?? new URL('https://thago.id')).toString().replace(/\/$/, '');
+
+const ORG_ID = `${site}/#organization`;
+
+const organization = {
+  '@type': 'Organization',
+  '@id': ORG_ID,
+  name: 'Thago',
+  url: `${site}/`,
+  logo: `${site}/logo.png`,
+  image: `${site}/og-image.png`,
+  description:
+    'Chia pudding dan cold pressed juice segar tanpa gula tambahan, dibuat segar dan diantar dingin.',
+  slogan: 'Sehat nggak harus ngebosenin',
+  // Profil resmi Thago di luar situs ini. GrabFood ikut karena halaman merchant
+  // itu memang identitas publik usaha yang sama, bukan sekadar tautan keluar.
+  sameAs: [orderLinks.instagram, orderLinks.grabfood].filter((u) => u && u !== '#'),
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'sales',
+    telephone: `+${WHATSAPP}`,
+    url: orderLinks.whatsapp,
+    availableLanguage: ['id'],
+    /**
+     * Jam buka menempel di ContactPoint lewat `hoursAvailable`, BUKAN sebagai
+     * `openingHoursSpecification` di level Organization.
+     *
+     * `openingHoursSpecification` itu properti milik `Place` dan
+     * `LocalBusiness` — keduanya mengandaikan ada tempat yang didatangi, dan
+     * itu justru tipe yang sengaja tidak dipakai di sini. `hoursAvailable`
+     * adalah properti sah milik ContactPoint, dan maknanya tepat: ini jam
+     * kanal pemesanannya dilayani, bukan jam sebuah toko dibuka.
+     */
+    hoursAvailable: {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ],
+      opens: HOURS.opens,
+      closes: HOURS.closes,
+    },
+  },
+};
+
+/** Satu entri Product + Offer. `anchor` menunjuk ke section tempat item itu tampil. */
+const toProduct = (item: { id: string; name: string; description?: string; tagline: string; photo: string | null; price: number }, anchor: string) => ({
+  '@type': 'Product',
+  '@id': `${site}/#${item.id}`,
+  name: `Thago ${item.name}`,
+  description: item.description ?? item.tagline,
+  image: item.photo ? `${site}${item.photo}` : undefined,
+  brand: { '@id': ORG_ID },
+  offers: {
+    '@type': 'Offer',
+    price: String(item.price),
+    priceCurrency: 'IDR',
+    availability: 'https://schema.org/InStock',
+    url: `${site}/${anchor}`,
+    seller: { '@id': ORG_ID },
+  },
+});
+
+/**
+ * Daftar produk dibungkus `ItemList`, bukan sembilan blok Product lepas.
+ * Untuk satu halaman yang memuat banyak produk, inilah bentuk yang dipahami
+ * Google — Product berdiri sendiri diharapkan punya satu halaman sendiri.
+ */
+const itemList = {
+  '@type': 'ItemList',
+  name: 'Produk Thago',
+  numberOfItems: products.length + drinks.length,
+  itemListElement: [
+    ...products.map((p) => toProduct(p, '#varian')),
+    ...drinks.map((d) => toProduct(d, '#minuman')),
+  ].map((item, i) => ({ '@type': 'ListItem', position: i + 1, item })),
+};
+
+const graph = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    organization,
+    { '@type': 'WebSite', '@id': `${site}/#website`, url: `${site}/`, name: 'Thago', publisher: { '@id': ORG_ID }, inLanguage: 'id-ID' },
+    itemList,
+  ],
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(graph)} is:inline />

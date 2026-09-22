@@ -1,0 +1,115 @@
+---
+import { orderLinks, HOURS } from '../data/products';
+import Marquee from './ui/Marquee.astro';
+import Doodle from './ui/Doodle.astro';
+import Fruit from './ui/Fruit.astro';
+
+/**
+ * CTA penutup + footer. Tidak ada checkout sendiri — semua diarahkan ke kanal
+ * yang memang dipakai Thago. Ganti link-nya di src/data/products.ts.
+ */
+/**
+ * Kanal yang link-nya masih '#' DIBUANG, bukan ditampilkan nonaktif.
+ *
+ * Tombol yang kelihatan bisa diklik tapi tidak membawa ke mana-mana lebih
+ * merugikan daripada tidak ada tombolnya: orang mengiranya rusak, lalu ikut
+ * ragu pada kanal yang sebenarnya jalan. Begitu GoFood atau ShopeeFood
+ * terdaftar, cukup isi link-nya di products.ts dan tombolnya muncul sendiri.
+ */
+const channels = [
+  { label: 'WhatsApp', href: orderLinks.whatsapp, bg: '#b4d63c', fg: '#241463', note: 'paling cepat' },
+  { label: 'GoFood', href: orderLinks.gofood, bg: '#faf5e9', fg: '#241463', note: 'diantar' },
+  { label: 'GrabFood', href: orderLinks.grabfood, bg: '#faf5e9', fg: '#241463', note: 'diantar' },
+  { label: 'ShopeeFood', href: orderLinks.shopeefood, bg: '#faf5e9', fg: '#241463', note: 'sering promo' },
+].filter((c) => c.href && c.href !== '#');
+
+/** 09:00 → 09.00, gaya penulisan jam yang lazim di Indonesia. */
+const jam = (t: string) => t.replace(':', '.');
+
+const year = new Date().getFullYear();
+
+/** Credit developer. Ganti `name` dan `instagram` dengan punyamu. */
+const credit = {
+  name: 'Daniel Evan',
+  instagram: 'https://instagram.com/danielpewds',
+};
+---
+
+<section id="pesan" data-cta data-nav-theme="dark" class="relative overflow-hidden bg-purple pt-24 pb-10 md:pt-32">
+  <!-- bahan melayang -->
+  <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+    <Fruit name="dragonfruit" class="absolute left-[6%] top-[12%] w-16 opacity-90 md:w-24" parallax={0.55} />
+    <Fruit name="ube" class="absolute right-[8%] top-[20%] w-14 opacity-90 md:w-20" parallax={0.8} />
+    <Fruit name="chia" class="absolute bottom-[30%] left-[14%] w-12 opacity-80 md:w-16" parallax={0.35} />
+  </div>
+
+  <div class="relative mx-auto max-w-5xl px-5 text-center">
+    <Doodle name="sparkle" class="text-yellow mx-auto mb-4 w-8 md:w-12" stroke={6} draw />
+
+    <h2 class="display-lg text-cream" data-anim data-cta-title>
+      LAPER<span class="text-lime">?</span>
+    </h2>
+    <p class="text-cream/80 mx-auto mt-5 max-w-md text-base md:text-lg" data-anim data-cta-sub>
+      Pesan lewat kanal favoritmu. Diantar dingin, siap disantap.
+    </p>
+
+    {/* Jam buka ditampilkan, bukan cuma ditanam di structured data: ini
+        pertanyaan pertama orang yang mau pesan, dan Google membandingkan
+        jam di markup dengan yang terlihat di halaman. */}
+    <p class="font-hand text-lime mt-3 text-xl md:text-2xl" data-anim data-cta-hours>
+      buka tiap hari {jam(HOURS.opens)}–{jam(HOURS.closes)}
+    </p>
+
+    <div class="mt-10 flex flex-wrap items-center justify-center gap-3" data-cta-buttons>
+      {
+        channels.map((c) => (
+          <a
+            href={c.href}
+            target="_blank"
+            rel="noopener"
+            class="btn-bubble flex-col gap-0.5 px-7 py-4"
+            style={`background-color:${c.bg};color:${c.fg}`}
+            data-cta-button
+          >
+            <span class="text-base font-semibold md:text-lg">{c.label}</span>
+            <span class="text-[0.7rem] font-normal opacity-70">{c.note}</span>
+          </a>
+        ))
+      }
+    </div>
+
+    <a
+      href={orderLinks.instagram}
+      target="_blank"
+      rel="noopener"
+      class="text-cream/70 hover:text-lime mt-8 inline-block text-sm underline underline-offset-4 transition-colors"
+    >
+      atau DM kami di Instagram @thago.id
+    </a>
+  </div>
+
+  <footer class="relative mt-20">
+    <Marquee
+      items={['THAGO', 'SEHAT BISA ENAK', 'THAGO', 'NO SUGAR ADDED']}
+      class="text-cream/20 font-display border-y border-cream/15 py-4 text-[clamp(2rem,6vw,4.5rem)]"
+      speed={55}
+    />
+
+    <div
+      class="text-cream/50 mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-8 text-xs md:flex-row"
+    >
+      <p>© {year} Thago. Seluruh hak cipta dilindungi.</p>
+      <p>
+        Dibuat oleh{' '}
+        <a
+          href={credit.instagram}
+          target="_blank"
+          rel="noopener"
+          class="hover:text-lime underline underline-offset-4 transition-colors"
+        >
+          {credit.name}
+        </a>
+      </p>
+    </div>
+  </footer>
+</section>

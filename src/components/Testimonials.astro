@@ -1,0 +1,249 @@
+---
+import MediaSlot from './ui/MediaSlot.astro';
+
+/**
+ * Testimoni — mengikuti TestimonialSection SPYLT:
+ *
+ *   tiga baris judul raksasa yang saling bergeser horizontal saat scroll,
+ *   dengan tumpukan kartu VIDEO miring yang terbang naik dari bawah.
+ *
+ * Semuanya video, tidak ada kartu kutipan teks — persis referensi, dan memang
+ * lebih meyakinkan: orang percaya wajah dan suara, bukan teks yang bisa
+ * dikarang. ASET MENYUSUL: enam video vertikal (9:16) dari pelanggan asli.
+ */
+/**
+ * PERINGATAN: `name` di bawah masih NAMA KARANGAN, sementara tiga kartu
+ * pertama sudah berisi video orang sungguhan. Artinya wajah asli seseorang
+ * saat ini tampil dengan label nama yang bukan namanya.
+ *
+ * Ganti dengan nama asli — dan minta izinnya lebih dulu, seperti dicatat di
+ * ASSETS.md — sebelum situs ini dipublikasikan.
+ *
+ * `note` hanya muncul pada kartu yang video-nya belum ada; begitu `video`
+ * terisi, teks itu tidak pernah tampil.
+ */
+const cards = [
+  {
+    name: 'Aris',
+    note: 'Reel: reaksi suapan pertama, di dapur',
+    video: '/video/testi-1.mp4',
+    poster: '/video/testi-1-poster.jpg',
+  },
+  {
+    name: 'Anna',
+    note: 'Reel: unboxing paket, buka tutup cup',
+    video: '/video/testi-2.mp4',
+    poster: '/video/testi-2-poster.jpg',
+  },
+  {
+    name: 'Caleb',
+    note: 'Reel: cerita sarapan sebelum kerja',
+    video: '/video/testi-3.mp4',
+    poster: '/video/testi-3-poster.jpg',
+  },
+  { name: 'Fikri', note: 'Reel: review rasa, pegang cup ke kamera' },
+  { name: 'Sarah', note: 'Reel: aduk pudding lalu cerita seminggu langganan' },
+  { name: 'Ardi', note: 'Reel: sebelum/sesudah rutin sebulan' },
+];
+
+/**
+ * Kemiringan & pergeseran tiap kartu — angka persis dari `cards` di
+ * constants/index.ts referensi (rotate-z + translate-y per kartu).
+ */
+const rot = [-10, 4, -4, 4, -10, 4];
+const shift = ['-5%', '0%', '-5%', '5%', '0%', '5%'];
+
+/**
+ * Ukuran kartu mengikuti .vd-card referensi: `md:w-96` dengan tumpang
+ * `-ms-44` (176px dari 384px = 46%), border tebal sewarna latar, sudut
+ * `2vw`. Rasio 9:16 karena isinya video vertikal hasil rekaman HP.
+ *
+ * Lebar itu menentukan tinggi (rasio 9:16), dan tinggi kartu harus ≥ 62% layar
+ * supaya kipasnya tidak menyisakan cream kosong di bawah. `w-96` memenuhi itu
+ * di semua ukuran desktop; 44vw di mobile TIDAK (hanya 314px di layar 844px,
+ * menyisakan 244px kosong), jadi mobile dinaikkan ke 74vw.
+ *
+ * Posisi tegaknya sendiri TIDAK lagi dipatok angka tetap. frameCards() di
+ * testimonials.js menghitungnya dari tinggi kipas yang sebenarnya supaya
+ * terpusat di layar — lihat CARD_BIAS kalau mau menggesernya dari tengah.
+ *
+ * Tumpangnya di mobile dibuat lebih dalam (70%, bukan 46% seperti desktop):
+ * dengan kartu sebesar itu, tumpang 46% membuat kipasnya 274vw sehingga hanya
+ * ~2 kartu terlihat dari enam. 70% menaikkannya jadi ~3,3 kartu tanpa
+ * mengecilkan kartunya. Tepi kipas memang terpotong — seperti referensi.
+ */
+/**
+ * `bg-cream-deep` itu bukan hiasan: placeholder MediaSlot masih separuh tembus
+ * pandang, dan di belakang kartu ada judul setinggi 20vw — tanpa latar pekat,
+ * huruf raksasa itu menembus kartunya dan section ini terlihat rusak. Tetap
+ * berguna setelah videonya masuk, sebagai warna dasar selama video dimuat.
+ */
+// `group` dipakai tombol suara di dalamnya supaya ia hanya muncul saat kartu
+// ini di-hover — sejalan dengan kapan videonya diputar.
+const CARD =
+  'group border-cream bg-cream-deep relative flex-none overflow-hidden shadow-[0_14px_28px_rgba(36,20,99,0.22)]' +
+  ' w-[74vw] rounded-3xl border-4 [&:not(:first-child)]:-ml-[52vw]' +
+  ' md:w-96 md:rounded-[2vw] md:border-[0.5vw] md:[&:not(:first-child)]:-ml-44';
+
+const TITLE =
+  'font-display uppercase leading-[1.02] tracking-[-0.03em] text-[clamp(3.2rem,20.5vw,18rem)]';
+---
+
+<!--
+  TINGGI SECTION ikut lebar layar, bukan cuma tinggi layar. Saat ter-pin, atas
+  section sudah lewat tepi atas sebanyak (tinggi judul − 62% layar); supaya
+  bawahnya tetap menutupi layar, tingginya harus ≥ tinggi judul + 38% layar.
+  Judulnya 20.5vw × 3 baris ≈ 69vw, jadi patokannya vw — pakai angka vh saja
+  akan bocor di layar lebar-pendek (mis. 2560×1080 butuh ~200vh) dan section
+  CTA ungu di bawahnya mengintip. `max(...,130vh)` menjaga layar sempit-tinggi.
+
+  `z-10` + latar solid `bg-cream` itu WAJIB: section ini ditarik naik oleh
+  videopin.js (margin-bottom -100vh di section video) supaya MENIMPA panggung
+  video yang masih menempel. Panggung itu `position: sticky` — elemen
+  ber-posisi — jadi yang menentukan siapa di atas hanya z-index; tanpa ini,
+  videonya yang menimpa testimoni.
+
+  JANGAN samakan angkanya dengan z-index apa pun di dalam section video. Pernah
+  terjadi panggungnya juga diberi z-10, dan dua elemen bertumpuk dengan z-index
+  identik harus diurutkan browser lewat posisi DOM — selama scroll halus urutan
+  itu goyah antar-frame dan muncul kedipan putih saat lingkaran mengembang.
+  Section video sekarang memakai `isolate` supaya z-index di dalamnya terkurung
+  dan tidak pernah bertanding dengan angka di sini.
+-->
+<section
+  id="testimoni"
+  data-testimonials
+  data-nav-theme="light"
+  class="bg-cream relative z-10 h-[130vh] overflow-hidden md:h-[max(72vw_+_45vh,130vh)]"
+>
+  <!--
+    Satu pembungkus untuk judul DAN kartu. Selama section ter-pin, pembungkus
+    ini digeser naik pelan-pelan oleh testimonials.js supaya isinya tidak
+    terlihat membeku — di referensi efek yang sama muncul karena tween
+    `marginTop` tetap berjalan pada section yang sudah `position: fixed`.
+  -->
+  <div class="absolute inset-0" data-testi-inner>
+    <!-- tiga baris judul raksasa; bergeser horizontal mengikuti scroll -->
+    <div class="absolute inset-x-0 top-0 flex flex-col items-center pt-[6vw]">
+      <h2 class={`${TITLE} text-indigo`} data-testi-line>APA</h2>
+      <h2 class={`${TITLE} text-pink`} data-testi-line>KATA</h2>
+      <h2 class={`${TITLE} text-indigo`} data-testi-line>MEREKA</h2>
+    </div>
+
+    <!--
+      Tumpukan kartu miring yang saling tindih. Tanpa padding mendatar dan
+      `justify-center`: kalau total kipasnya melebihi layar, potongannya jadi
+      simetris kiri-kanan (dipotong `overflow-hidden` section) — sama seperti
+      referensi yang kartu tepinya memang terpotong.
+
+      `bottom` di sini hanya nilai cadangan untuk tanpa-JS / reduced-motion.
+      Nilai sebenarnya dihitung testimonials.js tiap refresh, karena framing
+      yang benar bergantung pada posisi section saat ter-pin — dan itu ikut
+      tinggi judul (20.5vw), jadi berbeda ratusan piksel antar lebar layar.
+    -->
+    <div
+      class="absolute inset-x-0 bottom-[4vh] flex justify-center"
+      data-testi-cards
+    >
+      {
+        cards.map((card, i) => (
+          <div
+            class={CARD}
+            style={`rotate:${rot[i]}deg; translate: 0 ${shift[i]}`}
+            data-testi-card
+            data-rot={rot[i]}
+          >
+            {/*
+              preload dibiarkan 'metadata' (bawaan MediaSlot), TIDAK 'auto'
+              seperti video hero. Ketiganya cuma diputar saat kartunya di-hover,
+              jadi mengunduhnya di awal berarti ~3,4 MB yang mungkin tidak
+              pernah ditonton — dan itu berebut bandwidth dengan hero.
+            */}
+            <MediaSlot
+              kind="video"
+              src={card.video}
+              poster={card.poster}
+              note={card.note}
+              ratio="9/16"
+              tone="purple"
+            />
+
+            {/*
+              Label nama seperti di referensi, tapi ditaruh di ATAS kartu, bukan
+              di bawah: kipasnya sengaja menembus tepi bawah layar (sampai 222px
+              di 1280×800), jadi label di bawah selalu terpotong. Sisi kiri tiap
+              kartu adalah bagian yang tidak tertutup kartu sesudahnya.
+
+              Pilnya sengaja gelap pekat: selama slotnya masih placeholder
+              terang, teks cream tanpa pil tidak terbaca sama sekali — dan
+              begitu videonya masuk, isi rekaman HP bisa terang atau gelap,
+              tidak bisa ditebak.
+            */}
+            <div class="bg-ink/75 absolute top-3 left-3 flex items-center gap-2 rounded-full py-1 pr-3 pl-1 backdrop-blur-sm md:top-[1vw] md:left-[1vw] md:gap-[0.5vw]">
+              <span class="ring-cream/70 bg-purple text-cream font-display grid h-7 w-7 place-items-center rounded-full text-[0.65rem] ring-2 md:h-[2vw] md:w-[2vw] md:text-[0.85vw]">
+                {card.name[0]}
+              </span>
+              <span class="text-cream font-display text-[0.72rem] md:text-[0.95vw]">
+                {card.name}
+              </span>
+            </div>
+
+            {/*
+              Tombol suara. Hanya untuk kartu yang benar-benar punya video —
+              placeholder tidak punya yang bisa dibunyikan.
+
+              KENAPA MULAI SENYAP, padahal maunya hover langsung bersuara:
+              hover BUKAN gestur pengguna. Chrome dan Safari menolak play()
+              bersuara sampai pengunjung meng-klik sesuatu di halaman (scroll
+              tidak dihitung), jadi memaksakannya akan diblokir untuk sebagian
+              besar orang dan hasilnya tidak bisa ditebak.
+
+              Klik tombol ini justru gestur yang MEMBUKA kuncinya. Sekali
+              ditekan, hover berikutnya bersuara semua — dan pilihannya berlaku
+              untuk seluruh kartu, bukan per kartu.
+
+              Muncul hanya saat kartunya di-hover, sejalan dengan kapan
+              videonya diputar.
+            */}
+            {card.video && (
+              <button
+                type="button"
+                data-testi-sound
+                aria-label="Nyalakan suara"
+                aria-pressed="false"
+                class="bg-ink/75 text-cream absolute top-3 right-3 grid h-8 w-8 place-items-center rounded-full opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100 md:top-[1vw] md:right-[1vw] md:h-[2.4vw] md:w-[2.4vw]"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  class="w-1/2"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                  data-icon-off
+                >
+                  <path d="M11 5 6 9H3v6h3l5 4z" />
+                  <path d="m16 9 6 6M22 9l-6 6" />
+                </svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  class="hidden w-1/2"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                  data-icon-on
+                >
+                  <path d="M11 5 6 9H3v6h3l5 4z" />
+                  <path d="M15.5 9a4 4 0 0 1 0 6M18.5 6a8 8 0 0 1 0 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

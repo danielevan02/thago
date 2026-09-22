@@ -1,0 +1,102 @@
+---
+import ClipTitle from './ui/ClipTitle.astro';
+import Doodle from './ui/Doodle.astro';
+
+/**
+ * Manfaat chia seed — mengikuti BenefitSection SPYLT: tumpukan judul tebal yang
+ * tersingkap satu per satu mengikuti scroll (clip-path di-scrub), bukan
+ * kartu yang bergantian.
+ *
+ * Bedanya dari SPYLT: tiap judul diberi satu baris penjelasan. Target Thago
+ * orang yang peduli kesehatan — klaimnya perlu punya alasan, bukan cuma nama.
+ *
+ * Konten diambil dari post "Chia Seed Benefits" di Instagram Thago.
+ */
+const benefits = [
+  {
+    title: 'PENCERNAAN LANCAR',
+    desc: 'Tinggi serat yang bantu usus tetap lancar dan perut terasa nyaman sepanjang hari.',
+    bg: '#e52c74',
+    color: '#faf5e9',
+  },
+  {
+    title: 'ENERGI TAHAN LAMA',
+    desc: 'Bikin kenyang lebih lama dengan energi stabil — nggak naik-turun kayak habis makan manis.',
+    // lime, bukan krem: latar section sudah krem, kotaknya akan hilang
+    bg: '#b4d63c',
+    color: '#241463',
+  },
+  {
+    title: 'TULANG LEBIH KUAT',
+    desc: 'Kaya kalsium, magnesium, dan omega-3 yang mendukung kekuatan tulang kamu.',
+    bg: '#5e2ca5',
+    color: '#faf5e9',
+  },
+  {
+    title: 'JANTUNG SEHAT',
+    desc: 'Omega-3 dan antioksidan yang mendukung kesehatan jantung setiap hari.',
+    bg: '#f6d43c',
+    color: '#241463',
+  },
+];
+---
+
+<section id="manfaat" data-benefits data-nav-theme="light" class="relative overflow-hidden bg-cream px-5 py-[14vh] md:py-[18vh]">
+  <!--
+    Garis doodle yang tergambar mengikuti scroll: meliuk turun melewati keempat
+    judul, mulai dari tepi kiri dan berakhir di tepi kanan.
+
+    viewBox dan atribut `d`-nya sengaja dikosongkan — keduanya dihitung di
+    scripts/sections/benefits.js dalam satuan piksel asli, mengikuti posisi
+    sebenarnya tiap judul. Alasannya: kalau satu viewBox tetap diregangkan ke
+    tinggi section, penskalaannya jadi tidak seragam dan ketebalan garis ikut
+    berubah-ubah — tipis di bagian mendatar, tebal di tikungan.
+
+    Ujungnya tidak perlu penanda terpisah: stroke-linecap="round" pada garis
+    setebal 20px sudah menghasilkan ujung berupa lingkaran 20px.
+  -->
+  <svg class="text-lime pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+    <path
+      data-benefits-line
+      fill="none"
+      stroke="currentColor"
+      stroke-opacity="0.32"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="stroke-[50] md:stroke-[100]"
+    ></path>
+  </svg>
+
+  <Doodle name="star" class="text-yellow absolute left-[6%] top-[8%] w-10 md:w-16" parallax={0.6} />
+  <Doodle name="squiggle" class="text-pink absolute bottom-[8%] right-[6%] w-24 md:w-36" stroke={7} draw parallax={0.35} />
+  <Doodle name="spiral" class="text-lime absolute right-[10%] top-[12%] hidden w-16 md:block" stroke={6} draw parallax={0.5} />
+
+  <div class="relative z-10 mx-auto flex max-w-5xl flex-col items-center text-center">
+    <p class="text-ink/70 max-w-lg text-base leading-relaxed md:text-lg" data-benefits-intro>
+      Biji kecil, manfaat gede.<br />
+      Ini yang chia seed lakukan buat badan kamu.
+    </p>
+
+    <div class="mt-14 flex w-full flex-col items-center gap-8 md:mt-20 md:gap-12">
+      {
+        benefits.map((b, i) => (
+          <div class="flex flex-col items-center gap-3" data-benefit-item data-index={i}>
+            <ClipTitle
+              text={b.title}
+              bg={b.bg}
+              color={b.color}
+              border="#faf5e9"
+              rotate={0}
+              size="md"
+            />
+            <p class="text-ink/65 max-w-md text-sm leading-relaxed md:text-base" data-benefit-desc>
+              {b.desc}
+            </p>
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="font-hand text-purple mt-14 text-2xl md:text-3xl">dan masih banyak lagi…</p>
+  </div>
+</section>

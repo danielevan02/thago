@@ -1,0 +1,208 @@
+---
+import { drinks, formatPrice } from '../data/products';
+import ClipTitle from './ui/ClipTitle.astro';
+import Doodle from './ui/Doodle.astro';
+
+/**
+ * Cold pressed juice — lini kedua, sengaja TIDAK memakai rel horizontal.
+ *
+ * Alasannya dua. Pertama aritmetika: tiap kartu di section Varian memakan
+ * ~54vw (40vw kartu + 14vw jarak), jadi enam kartu plus judul sudah menuntut
+ * hampir tiga layar scroll dalam keadaan terpaku. Menambah rel kedua berarti
+ * meminta orang menembus scrolljack untuk kedua kalinya di halaman yang sama.
+ * Kedua, jumlahnya cuma tiga — muat sekaligus di satu layar desktop, jadi
+ * memaksanya berbaris ke samping justru menyembunyikan dua dari tiga produk
+ * tanpa alasan.
+ *
+ * Bentuknya meniru kemasannya sendiri: label botol itu bidang warna penuh
+ * dengan nama sebesar mungkin di bagian bawah. Di sini bidang itu dibesarkan
+ * jadi panel setinggi kartu, botolnya berdiri di depannya dan menembus sedikit
+ * tepi atas — trik tumpang-tindih yang sama dipakai hero (cup menembus
+ * wordmark).
+ *
+ * Gerakannya: panel terisi dari bawah ke atas seperti jus dituang. Itu satu
+ * `yPercent` di dalam pembungkus ber-overflow-hidden, bukan animasi `height`,
+ * supaya garis permukaannya tetap tajam dan tetap di GPU. Lihat drinks.js.
+ *
+ * Latar section dibuat paling gelap di seluruh halaman (void). Ketiga warna
+ * jusnya pekat semua — di atas krem mereka saling berebut, di atas void mereka
+ * menyala seperti kaca patri. Konsekuensinya nav harus ditandai gelap.
+ */
+
+// Kemiringan tetap dan berbeda-beda, meneruskan bahasa stiker brand supaya
+// ketiganya tidak terbaca seperti kolom tabel.
+const tilt = [-2.5, 1.8, -1.4];
+---
+
+<section
+  id="minuman"
+  data-drinks
+  data-nav-theme="dark"
+  class="bg-void relative overflow-hidden px-5 py-[14vh] md:py-[18vh]"
+>
+  <Doodle
+    name="squiggle"
+    class="text-lime/40 absolute left-[4%] top-[6%] w-20 md:w-32"
+    stroke={7}
+    parallax={0.5}
+  />
+  <Doodle
+    name="sparkle"
+    class="text-yellow absolute right-[8%] top-[12%] w-8 md:w-12"
+    stroke={6}
+    draw
+  />
+  <Doodle
+    name="spiral"
+    class="text-pink absolute bottom-[8%] left-[7%] hidden w-16 md:block"
+    stroke={6}
+    parallax={0.35}
+  />
+
+  <div class="relative mx-auto max-w-6xl">
+    <!-- ---------------- judul ---------------- -->
+    <div class="flex flex-col items-center text-center" data-drinks-intro>
+      <span class="sticker bg-yellow text-ink -rotate-3 text-sm md:text-base">✦ lini baru</span>
+
+      <span class="font-hand text-lime mt-5 text-2xl md:text-3xl">cold pressed juice</span>
+
+      {/*
+        Dua hal di baris ini keduanya berakar pada `line-height: 0.88` di aturan
+        h1–h3 global, yang membuat kotak baris lebih pendek daripada glif Modak
+        sehingga apa pun yang turun di bawah garis dasar menjulur keluar kotak.
+
+        1. TANPA pembungkus overflow-hidden, tidak seperti judul di Nutrition.
+           Topeng di sana ada karena judulnya disingkap per baris dari balik
+           garis; di sini seluruh blok judul digeser naik sebagai satu kesatuan,
+           jadi topengnya tidak menambah apa pun — yang ia lakukan hanya
+           memenggal koma di "BOTOL,".
+
+        2. pb-[0.32em] bukan angka karangan: julurannya terukur 0,31em di 390px,
+           768px, maupun 1440px — proporsinya tetap karena ikut ukuran huruf.
+           Dinyatakan dalam em supaya benar di lebar layar mana pun; dengan px ia
+           cuma benar di satu lebar. Tanpa ini, komanya menabrak kotak kuning.
+      */}
+      <h2 class="display-md text-cream mt-1 pb-[0.32em]" data-drinks-title>TIGA BOTOL,</h2>
+
+      <!-- border disamakan dengan latar section supaya kotaknya terbaca
+           seperti digunting dari halaman, bukan ditempel di atasnya -->
+      <ClipTitle
+        text="TIGA KEKUATAN"
+        bg="#f6d43c"
+        color="#241463"
+        border="#120a24"
+        rotate={-2}
+        size="md"
+        class="mt-6"
+      />
+
+      <p class="text-cream/70 mt-7 max-w-md text-base leading-relaxed md:text-lg" data-drinks-para>
+        Diperas dingin, tanpa dipanaskan — jadi warna dan rasanya masih seperti
+        buah dan sayur aslinya. Tinggal pilih yang lagi badan kamu butuhin.
+      </p>
+    </div>
+
+    <!-- ---------------- tiga botol ---------------- -->
+    <div class="mt-16 grid gap-y-16 sm:grid-cols-2 sm:gap-x-6 md:mt-20 lg:grid-cols-3 lg:gap-x-8">
+      {
+        drinks.map((d, i) => (
+          <article
+            class="group relative mx-auto flex w-full max-w-[380px] flex-col"
+            style={`rotate:${tilt[i % tilt.length]}deg`}
+            data-drink-card
+          >
+            {/*
+              Panel warna. Tingginya dikunci lewat rasio, BUKAN vh: botol di
+              dalamnya diukur dalam persen lebar kolom, dan mencampur dua sumbu
+              berbeda bikin botolnya meluber keluar panel di layar pendek.
+            */}
+            <div class="relative aspect-[3/4] overflow-hidden rounded-[2rem] md:rounded-[2.5rem]">
+              {/*
+                Isi jus. Kondisi awalnya (terdorong penuh ke bawah) dipasang
+                dari JS, bukan CSS — supaya tanpa JS atau saat reduced-motion
+                panelnya tampil terisi penuh, bukan kosong selamanya.
+              */}
+              <div class="absolute inset-0" style={`background-color:${d.fill}`} data-drink-fill>
+                {/* garis permukaan: tipis, lebih terang — ini yang bikin
+                    bidang warna terbaca sebagai cairan, bukan sekadar kotak */}
+                <span class="absolute inset-x-0 top-0 h-[3px] bg-white/30"></span>
+              </div>
+
+              {/* nama di dasar panel, persis seperti di labelnya */}
+              <div
+                class="absolute inset-x-0 bottom-0 p-5 md:p-6"
+                style={`color:${d.onFill}`}
+                data-drink-copy
+              >
+                <h3 class="font-display text-[clamp(1.5rem,3.6vw,2.2rem)] leading-[0.95] uppercase">
+                  {d.name}
+                </h3>
+                <p class="mt-1.5 text-xs font-medium opacity-80 md:text-sm">{d.elixir}</p>
+
+                <ul class="mt-3 flex flex-wrap gap-2">
+                  {[d.volume, 'cold pressed'].map((chip) => (
+                    <li
+                      class="rounded-full border px-3 py-1 text-xs font-medium"
+                      style={`border-color:${d.onFill}55`}
+                    >
+                      {chip}
+                    </li>
+                  ))}
+                  {/* Bahan belum ada datanya — barisnya hilang sendiri selama
+                      array-nya kosong, jadi tidak ada chip bolong di layar. */}
+                  {d.ingredients.map((bahan) => (
+                    <li
+                      class="rounded-full border px-3 py-1 text-xs font-medium"
+                      style={`border-color:${d.onFill}55`}
+                    >
+                      {bahan}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/*
+              Botol. Absolut supaya bisa menembus tepi atas panel, dan
+              pointer-events-none supaya tidak memblokir tombol di bawahnya.
+              Lebarnya persen dari kolom, jadi tingginya (rasio 0.484) ikut
+              menyesuaikan sendiri di lebar layar mana pun.
+            */}
+            <div
+              class="pointer-events-none absolute inset-x-0 top-[-12%] mx-auto w-[50%]"
+              data-drink-bottle
+            >
+              <img
+                src={d.photo}
+                alt={`Botol Thago ${d.name}, cold pressed juice ${d.volume}`}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+                width="640"
+                height="1321"
+                class="h-auto w-full drop-shadow-[0_22px_34px_rgba(0,0,0,0.55)]"
+              />
+            </div>
+
+            {/* Tagline & tombol ditaruh DI LUAR panel, di atas latar gelap:
+                krem di atas void 17,6:1, sementara di dalam panel oranye teks
+                krem cuma 1,9:1. */}
+            <div class="mt-6 flex flex-col items-center text-center" data-drink-foot>
+              <p class="font-hand text-cream/75 text-lg md:text-xl">{d.tagline}</p>
+              <div class="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                <span class="font-display text-cream text-xl leading-none">{formatPrice(d.price)}</span>
+                <a
+                  href="#pesan"
+                  aria-label={`Pesan ${d.name}`}
+                  class="btn-bubble px-6 py-3 text-sm"
+                  style={`background-color:${d.fill};color:${d.onFill}`}
+                >
+                  Pesan yang ini
+                </a>
+              </div>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

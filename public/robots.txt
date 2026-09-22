@@ -1,0 +1,8 @@
+# /og bukan halaman untuk pengunjung — itu sumber gambar Open Graph, dipotret
+# oleh scripts/build-og-image.mjs. Halamannya sendiri sudah <meta noindex>,
+# baris ini mencegahnya dirayapi sejak awal.
+User-agent: *
+Allow: /
+Disallow: /og
+
+Sitemap: https://thago.id/sitemap.xml

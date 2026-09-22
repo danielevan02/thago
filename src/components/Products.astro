@@ -1,0 +1,173 @@
+---
+import { products, formatPrice } from '../data/products';
+import ProductVisual from './ui/ProductVisual.astro';
+import ClipTitle from './ui/ClipTitle.astro';
+import Doodle from './ui/Doodle.astro';
+
+/**
+ * Showcase varian — mengikuti FlavorSection SPYLT.
+ *
+ * Struktur pentingnya: judul raksasa BUKAN elemen yang dipaku diam, melainkan
+ * item pertama di dalam rel horizontal. Jadi saat scroll, judul ikut tergeser
+ * keluar layar sementara kartu-kartu masuk — dan ketiga lapisan judul bergerak
+ * dengan kecepatan berbeda sehingga ada parallax di dalam judulnya sendiri.
+ *
+ * Latar panggung sengaja dibuat tetap (krem). Warna dibawa oleh panel tiap
+ * kartu, seperti SPYLT — bukan dengan mengganti warna seluruh section, yang
+ * bikin nav dan judul harus terus menyesuaikan kontras.
+ *
+ * Desktop : section di-pin, scroll vertikal jadi gerak horizontal.
+ * Mobile  : pin dilepas, ganti native scroll-snap.
+ */
+
+// Kemiringan tiap kartu dibuat tetap dan berbeda-beda, seperti kelas rotation
+// di flavorlists SPYLT — deretan kartu jadi tidak terasa seperti tabel.
+const rotations = [-5, 4, -3, 6, -4, 3];
+---
+
+<section id="varian" data-products data-nav-theme="light" class="relative overflow-hidden bg-cream">
+  <div data-products-stage class="relative flex h-[100svh] flex-col justify-center">
+    <!-- penghitung varian -->
+    <div class="pointer-events-none absolute inset-x-0 top-0 z-20 px-5 pt-24 md:px-12 md:pt-28">
+      <div class="text-ink hidden items-center justify-end gap-2 md:flex" data-products-counter>
+        <span class="font-display text-[clamp(1.6rem,3vw,2.6rem)] leading-none" data-products-index>
+          01
+        </span>
+        <span class="font-body text-sm opacity-50">/ {String(products.length).padStart(2, '0')}</span>
+      </div>
+    </div>
+
+    <div
+      class="flex w-max items-center gap-[12vw] px-[6vw] will-change-transform md:gap-[14vw]"
+      data-products-track
+    >
+      <!--
+        Judul: item pertama di rel, ikut tergeser keluar saat scroll.
+        Lebarnya sengaja besar — rel bergerak dengan kecepatan tetap, jadi lebar
+        blok inilah yang menentukan berapa lama judul bertahan di layar sebelum
+        tersapu keluar. Kalau terlalu sempit, judulnya cuma berkelebat.
+      -->
+      <div
+        class="flex w-[86vw] flex-none flex-col items-center justify-center gap-1 text-center md:w-[70vw] md:gap-2"
+        data-products-intro
+      >
+        <div class="overflow-hidden" data-intro-line>
+          <h2
+            class="text-indigo text-[clamp(2.4rem,7.2vw,6.4rem)] tracking-[-0.01em] uppercase"
+            data-intro-text
+          >
+            Kami punya {products.length}
+          </h2>
+        </div>
+
+        <div class="w-max" data-intro-line>
+          <ClipTitle text="RASA" bg="#e52c74" color="#faf5e9" border="#faf5e9" rotate={-3} size="xl" />
+        </div>
+
+        <div class="overflow-hidden" data-intro-line>
+          <h2
+            class="text-pink text-[clamp(2.4rem,7.2vw,6.4rem)] tracking-[-0.01em] uppercase"
+            data-intro-text
+          >
+            yang bikin nagih
+          </h2>
+        </div>
+      </div>
+
+      <!-- Kartu varian -->
+      {
+        products.map((p, i) => (
+          <article
+            class="relative flex h-[64vh] w-[80vw] max-w-[620px] flex-none flex-col justify-end overflow-hidden rounded-[2rem] shadow-[0_18px_0_rgba(36,20,99,0.15)] md:h-[70vh] md:w-[40vw] md:rounded-[2.75rem]"
+            style={`background-color:${p.stage}; rotate:${rotations[i % rotations.length]}deg`}
+            data-product-card
+            data-index={i}
+          >
+            {p.isNew && (
+              <span class="sticker bg-yellow text-ink absolute left-5 top-5 z-20 -rotate-6 text-xs md:text-sm">
+                baru!
+              </span>
+            )}
+
+            {/* cup mengambang di bagian atas panel */}
+            <div class="absolute inset-x-0 top-[4%] flex h-[58%] justify-center" data-product-visual>
+              <ProductVisual
+                product={p}
+                loading={i < 2 ? 'eager' : 'lazy'}
+                class="drop-shadow-[0_18px_28px_rgba(36,20,99,0.28)]"
+              />
+            </div>
+
+            {/* nama varian di kiri bawah, seperti kartu flavor SPYLT */}
+            <div class="relative z-10 p-6 md:p-8" style={`color:${p.onStage}`}>
+              <h3
+                class="font-display text-[clamp(1.7rem,3.4vw,3rem)] leading-[0.95] uppercase"
+                data-product-el
+              >
+                {p.name}
+              </h3>
+              <p class="font-hand mt-1 text-lg opacity-85 md:text-xl" data-product-el>{p.tagline}</p>
+
+              {/*
+                Empat chip mengikuti urutan di stiker tutup asli. Gula TIDAK
+                ikut: labelnya memang tidak memecah gula, yang tertulis di sana
+                "(use stevia)". Klaimnya pindah ke baris tulisan tangan di bawah
+                sebagai "tanpa gula tambahan" — yang didukung label, sementara
+                "0 g gula" tidak.
+              */}
+              <ul class="mt-4 flex flex-wrap gap-2" data-product-el>
+                {[
+                  `${p.nutrition.kcal} kkal`,
+                  `${p.nutrition.protein}g protein`,
+                  `${p.nutrition.fiber}g serat`,
+                  `${p.nutrition.carbs}g karbo`,
+                ].map((chip) => (
+                  <li
+                    class="rounded-full border px-3 py-1 text-xs font-medium"
+                    style={`border-color:${p.onStage}55`}
+                  >
+                    {chip}
+                  </li>
+                ))}
+              </ul>
+
+              <p class="font-hand mt-3 text-lg opacity-80" data-product-el>
+                ✦ tanpa gula tambahan, manisnya dari stevia
+              </p>
+
+              {/*
+                Label tombol dibuat tetap, bukan "Pesan {nama}": nama varian di
+                lini ini sampai 25 karakter ("Green Tea with Strawberry") dan
+                tombolnya melar melewati lebar kartu. Nama lengkapnya tetap
+                sampai ke pembaca layar lewat aria-label.
+              */}
+              <div class="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3" data-product-el>
+                <span class="font-display text-[clamp(1.3rem,2.4vw,1.8rem)] leading-none">
+                  {formatPrice(p.price)}
+                </span>
+                <a
+                  href="#pesan"
+                  aria-label={`Pesan ${p.name}`}
+                  class="btn-bubble px-6 py-3 text-sm"
+                  style={`background-color:${p.onStage};color:${p.stage}`}
+                >
+                  Pesan yang ini
+                </a>
+              </div>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+
+    <!-- petunjuk arah -->
+    <div
+      class="text-ink/55 pointer-events-none absolute bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-3"
+      data-products-hint
+    >
+      <span class="font-hand text-lg md:hidden">geser</span>
+      <span class="font-hand hidden text-lg md:inline">terus scroll</span>
+      <Doodle name="arrow" class="w-14" stroke={7} />
+    </div>
+  </div>
+</section>

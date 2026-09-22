@@ -1,0 +1,172 @@
+---
+import Doodle from './ui/Doodle.astro';
+import Fruit from './ui/Fruit.astro';
+import Scallop from './ui/Scallop.astro';
+import Logo from './ui/Logo.astro';
+import ProductVisual from './ui/ProductVisual.astro';
+import { products } from '../data/products';
+
+// Elemen melayang: data-depth mengatur seberapa jauh ia bergerak saat parallax
+// Semua elemen sengaja dijauhkan dari kolom tengah (tempat judul, cup, dan CTA)
+// supaya tidak pernah menabrak teks di lebar layar mana pun.
+// Di mobile ukurannya dikecilkan dan sebagian disembunyikan — ruang horizontalnya
+// sempit, kalau dipaksa semua pasti menabrak judul atau paragraf.
+const floats = [
+  { name: 'dragonfruit', cls: 'left-[1%] top-[22%] w-11 md:w-28', depth: 0.9, tilt: -12 },
+  { name: 'ube', cls: 'right-[2%] top-[19%] w-10 md:w-24', depth: 1.25, tilt: 14 },
+  { name: 'chia', cls: 'left-[3%] bottom-[14%] w-9 md:w-20', depth: 0.6, tilt: 8 },
+  { name: 'strawberry', cls: 'right-[2%] bottom-[34%] w-10 md:w-24', depth: 1.05, tilt: -8 },
+  { name: 'matcha', cls: 'left-[16%] top-[46%] hidden w-16 md:block', depth: 1.4, tilt: 18 },
+  { name: 'oat', cls: 'right-[14%] bottom-[12%] hidden w-20 md:block', depth: 0.75, tilt: -16 },
+] as const;
+---
+
+<section
+  id="top"
+  data-hero
+  data-nav-theme="light"
+  class="relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden bg-void px-5 pt-24 pb-24"
+>
+  <!-- Panggung hero. Saat scroll, SELURUH panggung ini yang dimiringkan dan
+       dikecilkan (gerakan khas SPYLT), bukan tiap elemen sendiri-sendiri.
+       Warna krem dibawa panggung ini, BUKAN oleh section — supaya saat panggung
+       miring menjauh, yang tersingkap di baliknya adalah latar gelap section,
+       bukan krem yang sama. Tanpa itu, gerakannya tidak akan terbaca. -->
+  <div
+    class="bg-cream absolute inset-0 flex flex-col items-center justify-center overflow-hidden px-5 pt-24 pb-36"
+    data-hero-stage
+  >
+  <!-- elemen bahan melayang -->
+  {
+    floats.map((f) => (
+      <div
+        class={`pointer-events-none absolute ${f.cls}`}
+        data-hero-float
+        data-depth={f.depth}
+        style={`--tilt:${f.tilt}deg`}
+      >
+        <Fruit name={f.name} class="h-full w-full drop-shadow-[0_8px_16px_rgba(36,20,99,0.18)]" />
+      </div>
+    ))
+  }
+
+  <!-- doodle dekoratif -->
+  <Doodle name="squiggle" class="text-pink absolute left-[4%] top-[14%] w-20 md:w-32" stroke={7} draw />
+  <Doodle name="sparkle" class="text-yellow absolute right-[18%] top-[30%] w-8 md:w-12" stroke={6} draw />
+  <Doodle name="spiral" class="text-lime absolute bottom-[26%] left-[6%] hidden w-16 md:block" stroke={6} draw />
+
+  <!--
+    HERO = LOCKUP BRAND, bukan header produk.
+
+    Susunannya sengaja: nama brand raksasa sebagai bintang, cup sebagai
+    jangkarnya, tagline sebagai penopang. Yang dulu ada di sini — cup satu
+    varian, paragraf `hero.description`, stiker "rasa baru!" — semuanya milik
+    satu rasa; orang yang baru datang dari bio IG dijawab pertanyaan yang belum
+    ia tanyakan, dan section Varian yang sudah punya tur enam rasa jadi
+    terduplikasi.
+
+    ClipTitle juga dilepas dari sini. Motif itu sudah dipakai di Message,
+    Varian, Manfaat, dan Nutrition; di hero ia hanya akan berebut perhatian
+    dengan wordmark yang seharusnya jadi bintang tunggal.
+  -->
+  <div class="relative z-10 flex w-full max-w-6xl flex-col items-center">
+    <span
+      class="sticker bg-lime text-ink text-sm md:text-base"
+      data-anim
+      data-hero-sticker>✦ chia pudding & cold pressed juice</span
+    >
+
+    <!--
+      Wordmark raksasa. TIDAK dianimasikan masuk oleh hero.js: inilah tempat
+      mendaratnya wordmark preloader. Preloader menerbangkan miliknya ke posisi
+      persis kotak ini lalu bertukar tempat, jadi nama brand-nya tidak pernah
+      muncul dua kali maupun berkedip.
+    -->
+    <div class="text-indigo mt-5 w-[80vw] max-w-[820px] md:mt-7" data-hero-wordmark>
+      <Logo class="w-full" />
+    </div>
+
+    <!--
+      Cup ditarik naik menembus separuh bawah wordmark, dan karena ia datang
+      SESUDAH wordmark di urutan DOM, ia tergambar di depannya — tipografi dan
+      produk saling mengunci, bukan bertumpuk rapi.
+
+      Keenam rasa ditumpuk di sini dan disilangfadekan pelan-pelan. Ditumpuk,
+      bukan diganti warnanya lewat JS, supaya cara ini tetap bekerja begitu
+      foto produk asli masuk: yang disilangfadekan tinggal <img>-nya.
+    -->
+    <div
+      class="relative -mt-[11vw] w-[40vw] max-w-[190px] md:-mt-[8vw] md:w-[16vw] md:max-w-[240px]"
+      data-hero-cup
+    >
+      {
+        products.map((p, i) => (
+          <div
+            class={i === 0 ? 'relative' : 'absolute inset-0'}
+            data-hero-flavor
+            style={i === 0 ? undefined : 'opacity:0'}
+          >
+            <ProductVisual
+              product={p}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              class="drop-shadow-[0_24px_40px_rgba(36,20,99,0.28)]"
+            />
+          </div>
+        ))
+      }
+    </div>
+
+    <h1
+      class="mt-5 text-center text-[clamp(1.05rem,2.5vw,1.95rem)] leading-tight"
+      data-anim
+      data-hero-title
+    >
+      <!--
+        Spasinya ditaruh DI DALAM span pertama, bukan di sela markup dan bukan
+        diganti margin.
+
+        Versi sebelumnya memakai `mr-[0.3em]` karena spasi di antara dua tag
+        memang dilipat habis saat SplitText memecah baris ini per huruf. Tapi
+        margin cuma memberi jarak VISUAL: `textContent` h1 ini terbaca
+        "SEHAT NGGAK HARUSNGEBOSENIN", dan itulah yang dibaca mesin pencari,
+        pratinjau tautan, dan pembaca layar — satu kata yang tidak ada.
+
+        Spasi di ujung teks span adalah karakter biasa, bukan whitespace antar
+        elemen, jadi SplitText memperlakukannya sebagai char dan jaraknya tetap
+        muncul — sementara textContent-nya kini benar.
+      -->
+      <span class="text-indigo">SEHAT NGGAK HARUS </span><span class="text-pink"
+        >NGEBOSENIN</span
+      >
+    </h1>
+
+    <div class="mt-6 flex flex-wrap items-center justify-center gap-3" data-anim data-hero-cta>
+      <a href="#pesan" class="btn-bubble bg-yellow text-ink">Pesan Sekarang</a>
+      <a href="#varian" class="btn-bubble bg-indigo text-cream">Lihat Semua Varian</a>
+    </div>
+  </div>
+
+    <!--
+      PETUNJUK SCROLL DIHAPUS, bukan dipindah.
+
+      Diukur di lima lebar layar, ruang antara tombol dan tepi gelombang cuma
+      26px di 1280×800 dan 54px di 1440×900 — dua ukuran laptop yang paling
+      umum. Ditaruh di bawah ia tenggelam ke dalam ungu, dinaikkan sedikit ia
+      menabrak tombol. Isi hero memang sudah penuh setelah wordmark raksasa
+      masuk, dan dari semua yang ada di sini petunjuk itu yang paling ringan
+      bobotnya: tepi gelombang yang terpotong layar sudah menandakan ada
+      lanjutannya, dan dua tombol CTA adalah ajakan yang lebih penting.
+    -->
+    <!-- Tepi bergelombang. Diletakkan DI DALAM panggung supaya ikut miring —
+         kalau di luar, ia tetap datar sementara panggungnya berputar dan
+         keduanya terlihat terlepas satu sama lain.
+
+         Bentuk yang sama dipakai sebagai tudung tirai preloader, dan tirai itu
+         mendarat tepat di sini. `data-hero-scallop` adalah sasaran yang dibaca
+         preloader.js untuk tahu harus berhenti di mana. -->
+    <Scallop
+      class="text-purple pointer-events-none absolute inset-x-0 bottom-0"
+      data-hero-scallop
+    />
+  </div>
+</section>

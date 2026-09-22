@@ -1,0 +1,41 @@
+---
+import Cup from './Cup.astro';
+import type { Product } from '../../data/products';
+
+/**
+ * Menampilkan foto produk kalau sudah ada, kalau belum pakai ilustrasi cup SVG.
+ * Satu-satunya tempat yang perlu tahu soal fallback ini.
+ */
+interface Props {
+  product: Product;
+  class?: string;
+  loading?: 'lazy' | 'eager';
+}
+const { product, class: className = '', loading = 'lazy' } = Astro.props;
+---
+
+{/*
+  Alt sengaja "Cup Thago <nama>", bukan "chia pudding rasa <nama>": lini ini
+  berisi Overnight Oats juga, yang bukan chia pudding — dan nama varian sudah
+  memuat rasanya sendiri ("Chocolate with Banana"), jadi kata "rasa" cuma
+  menambah kebisingan buat pembaca layar.
+*/}
+{
+  product.photo ? (
+    <img
+      src={product.photo}
+      alt={`Cup Thago ${product.name}`}
+      loading={loading}
+      decoding="async"
+      class={`h-full w-full object-contain ${className}`}
+    />
+  ) : (
+    <Cup
+      pudding={product.pudding}
+      puddingBottom={product.puddingBottom}
+      topping={product.topping}
+      label={`Cup Thago ${product.name}`}
+      class={`h-full w-full ${className}`}
+    />
+  )
+}

@@ -1,0 +1,82 @@
+---
+// Subset latin saja — Modak bawaannya ikut subset Devanagari yang tidak
+// terpakai untuk pasar Indonesia.
+import '@fontsource/modak/latin-400.css';
+import '@fontsource-variable/fredoka/wght.css';
+import '@fontsource-variable/caveat/wght.css';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Thago | Chia Pudding & Cold Pressed Juice',
+  description =
+    'Chia pudding & cold pressed juice segar, tanpa gula tambahan — manisnya dari stevia. Enam varian cup Rp 35.000, tiga juice Rp 25.000. Diantar dingin.',
+} = Astro.props;
+
+const site = Astro.site ?? new URL('https://thago.id');
+const canonical = new URL(Astro.url.pathname, site).toString();
+
+/**
+ * og:image WAJIB absolut. Scraper WhatsApp, Facebook, dan Twitter tidak punya
+ * konteks halaman saat mengambilnya, jadi path relatif seperti "/og-image.png"
+ * dibaca sebagai relatif terhadap domain mereka sendiri dan previewnya kosong.
+ *
+ * Berkasnya dihasilkan dari halaman /og lewat scripts/build-og-image.mjs —
+ * bukan digambar tangan, supaya wordmark, warna, dan fotonya selalu ikut brand
+ * yang berlaku di kode.
+ */
+const ogImage = new URL('/og-image.png', site).toString();
+---
+
+<!doctype html>
+<html lang="id" class="no-js">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#5e2ca5" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Thago" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Deretan chia pudding dan cold pressed juice Thago" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Structured data disuntik halaman, bukan layout: data produk milik
+         halaman depan, dan layout ini nantinya dipakai halaman lain juga. -->
+    <slot name="head" />
+
+    <script is:inline>
+      document.documentElement.classList.remove('no-js');
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.documentElement.classList.add('reduced-motion');
+      }
+    </script>
+  </head>
+
+  <body>
+    <slot />
+    <script>
+      import '../scripts/main.js';
+    </script>
+  </body>
+</html>

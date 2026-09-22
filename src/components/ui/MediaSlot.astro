@@ -1,0 +1,108 @@
+---
+/**
+ * Slot aset yang belum ada.
+ *
+ * Selama `src` masih null, komponen menggambar kotak placeholder bergaya brand
+ * yang menuliskan FOTO/VIDEO apa yang harus ditaruh di situ — jadi website bisa
+ * langsung dilihat utuh dan sesi foto punya panduan visual.
+ *
+ * Begitu asetnya ada: isi `src` (dan `poster` untuk video). Tidak ada perubahan
+ * layout, karena rasio kotaknya sudah dikunci lewat `ratio`.
+ */
+interface Props {
+  /** Path aset di /public. null = tampilkan placeholder. */
+  src?: string | null;
+  kind?: 'photo' | 'video';
+  /** Deskripsi aset yang dibutuhkan — muncul di placeholder */
+  note: string;
+  alt?: string;
+  /** aspect-ratio CSS, mis. "3/4", "16/9", "1/1" */
+  ratio?: string;
+  poster?: string | null;
+  class?: string;
+  /** warna aksen placeholder */
+  tone?: 'purple' | 'pink' | 'lime' | 'cream';
+  loading?: 'lazy' | 'eager';
+  /** preload video. 'auto' untuk video yang harus sudah berjalan saat terlihat. */
+  preload?: 'none' | 'metadata' | 'auto';
+  /** posisi label placeholder — 'top' dipakai saat slot jadi latar penuh
+   *  supaya labelnya tidak bertabrakan dengan teks overlay di atasnya */
+  align?: 'center' | 'top';
+}
+
+const {
+  src = null,
+  kind = 'photo',
+  note,
+  alt = '',
+  ratio = '3/4',
+  poster = null,
+  class: className = '',
+  tone = 'purple',
+  loading = 'lazy',
+  preload = 'metadata',
+  align = 'center',
+} = Astro.props;
+
+const tones = {
+  purple: 'text-purple/70 border-purple/40 bg-purple/8',
+  pink: 'text-pink/70 border-pink/40 bg-pink/8',
+  lime: 'text-lime/90 border-lime/60 bg-lime/10',
+  cream: 'text-cream/70 border-cream/40 bg-cream/8',
+};
+---
+
+<div class={`relative overflow-hidden ${className}`} style={`aspect-ratio:${ratio}`}>
+  {
+    src && kind === 'photo' && (
+      <img src={src} alt={alt} loading={loading} decoding="async" class="h-full w-full object-cover" />
+    )
+  }
+  {
+    src && kind === 'video' && (
+      <video
+        src={src}
+        poster={poster ?? undefined}
+        muted
+        loop
+        playsinline
+        preload={preload}
+        class="h-full w-full object-cover"
+      />
+    )
+  }
+  {
+    !src && (
+      <div
+        class={`flex h-full w-full flex-col items-center gap-3 border-2 border-dashed p-5 text-center ${
+          align === 'top' ? 'justify-start pt-10' : 'justify-center'
+        } ${tones[tone]}`}
+      >
+        <svg viewBox="0 0 48 48" class="w-9 opacity-70" fill="none" aria-hidden="true">
+          {kind === 'photo' ? (
+            <>
+              <rect x="5" y="10" width="38" height="28" rx="5" stroke="currentColor" stroke-width="3" />
+              <circle cx="17" cy="20" r="3.5" fill="currentColor" />
+              <path
+                d="M8 34l10-9 7 6 6-5 9 8"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </>
+          ) : (
+            <>
+              <rect x="5" y="10" width="38" height="28" rx="5" stroke="currentColor" stroke-width="3" />
+              <path d="M20 18l11 6-11 6z" fill="currentColor" />
+            </>
+          )}
+        </svg>
+        <p class="font-hand text-lg leading-tight font-semibold">
+          {kind === 'photo' ? 'Foto' : 'Video'} menyusul
+        </p>
+        <p class="max-w-[24ch] text-[0.7rem] leading-snug tracking-wide uppercase opacity-80">{note}</p>
+      </div>
+    )
+  }
+</div>

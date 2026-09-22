@@ -1,0 +1,108 @@
+---
+import Logo from './ui/Logo.astro';
+import Scallop from './ui/Scallop.astro';
+---
+
+<div data-preloader class="fixed inset-0 z-[100] overflow-hidden" aria-hidden="true">
+  <!--
+    TIRAI. Dulu ia naik keluar layar — bahasa gerak "layar ini pergi". Sekarang
+    ia TURUN sampai hanya tudung gelombangnya yang tersisa, tepat menempati
+    tepi bergelombang di dasar hero: tirainya tidak pergi, ia menjadi bagian
+    dari halaman. Karena turun, yang tersingkap lebih dulu adalah bagian atas —
+    navbar, tempat wordmark-nya mendarat.
+
+    Tudungnya <Scallop>, komponen yang sama dengan yang dipakai hero, jadi
+    bentuk dan tingginya mustahil berbeda. Badan tirainya sengaja 220vh supaya
+    setelah turun sejauh satu layar ia masih menutup penuh apa pun di bawahnya.
+  -->
+  <div data-preloader-curtain class="absolute inset-x-0 top-0 h-[220vh]">
+    <!-- -mb-px: tumpangan subpiksel, alasan sama seperti di Nav.astro. -->
+    <Scallop class="text-purple absolute inset-x-0 bottom-full -mb-px" />
+    <div class="bg-purple absolute inset-0"></div>
+  </div>
+
+  <!--
+    Isi tirai dipisah dari tirainya — kalau jadi anak, wordmark-nya ikut
+    terseret turun, padahal ia harus terbang ke arah berlawanan (naik ke
+    navbar).
+  -->
+  <div class="absolute inset-0 flex flex-col items-center justify-center gap-8 px-8">
+    <!--
+      WORDMARK-NYA SENDIRI YANG JADI PENUNJUK PROGRES. Dua lapis logo yang sama
+      persis ditumpuk: lapis bawah tanpa isi (hanya garis tepi krem, jadi
+      hurufnya terbaca sebagai bejana kosong di atas ungu), lapis atas berisi
+      indigo penuh dan tersingkap dari bawah ke atas mengikuti pemuatan —
+      seperti cup yang terisi pudding.
+
+      Garis tepi keduanya identik dan setumpuk, jadi batas singkapan lapis atas
+      tidak pernah terlihat sebagai potongan: yang tersisa di bawahnya persis
+      garis tepi yang sama.
+
+      Pada 100% lapis atas menutup penuh lapis bawah, sehingga hasil akhirnya
+      identik dengan logo navbar — syarat mutlak supaya serah-terimanya mulus.
+    -->
+    <!--
+      Bayangan DIMATIKAN di kedua lapis. Lapis atas dipotong clip-path, dan
+      filter bayangan ikut terpotong bersamanya — hasilnya garis mendatar samar
+      melintasi seluruh wordmark tepat di batas isian, termasuk di sela antar
+      huruf. Di atas ungu bayangannya toh nyaris tak terbaca; saat mendarat di
+      navbar, logo asli yang berbayang mengambil alih, dan pada ukuran itu
+      bayangannya cuma ~1px sehingga pertukarannya tetap tak terlihat.
+    -->
+    <!--
+      Batas isiannya BERGELOMBANG, bukan garis lurus. Garis lurus terbaca
+      sebagai bilah progres yang kebetulan berbentuk huruf; permukaan yang
+      beriak terbaca sebagai cairan yang dituang — dan itu yang mau
+      disampaikan, karena produknya memang dituang.
+
+      Dibuat dengan <clipPath> ber-satuan objectBoundingBox (0–1 relatif kotak
+      wordmark), lalu grupnya digeser tegak mengikuti progres. Lebarnya
+      sengaja −0,2 sampai 1,2 supaya saat riaknya bergoyang mendatar, tepi
+      kiri-kanannya tidak pernah menyingkap celah.
+    -->
+    <svg width="0" height="0" aria-hidden="true" class="absolute">
+      <defs>
+        <!--
+          Transform menempel LANGSUNG di <path>, bukan di <g> pembungkus:
+          spesifikasi SVG cuma mengizinkan elemen bentuk, <text>, dan <use> di
+          dalam <clipPath>. Sebuah <g> di sini diabaikan diam-diam — clip-nya
+          jadi kosong dan seluruh lapis isian lenyap tanpa error apa pun.
+        -->
+        <clipPath id="thago-fill" clipPathUnits="objectBoundingBox">
+          <path
+            data-preloader-wave
+            transform="translate(0 1)"
+            d="M-0.2,0 C0.05,-0.05 0.2,0.05 0.45,0 C0.7,-0.05 0.85,0.05 1.2,0 L1.2,1.4 L-0.2,1.4 Z"
+          ></path>
+        </clipPath>
+      </defs>
+    </svg>
+
+    <div class="relative w-[68vw] max-w-[520px]" data-preloader-logo>
+      <Logo class="w-full" color="transparent" shadow={false} />
+      <div class="text-indigo absolute inset-0" data-preloader-fill>
+        <Logo class="w-full" shadow={false} />
+      </div>
+    </div>
+
+    <!--
+      Angkanya sengaja besar. Modak itu huruf display yang sangat gemuk: di
+      ukuran kecil digitnya saling tumpuk jadi noda, bukan angka. Diberi
+      tracking longgar karena alasan yang sama.
+    -->
+    <div
+      class="text-cream font-display flex items-baseline gap-1.5 text-[clamp(1.8rem,4.4vw,3rem)] leading-none tracking-[0.06em]"
+      data-preloader-count
+    >
+      <!--
+        "%" pakai huruf body, bukan Modak. Glyph persen itu dua lingkaran plus
+        garis miring; di huruf display segemuk Modak dan seukuran ini ia
+        menyatu jadi noda hijau, bukan simbol. Kontras angka gemuk dengan
+        persen ramping juga membuat angkanya yang jadi fokus.
+      -->
+      <span data-preloader-count-value>0</span><span
+        class="text-lime font-body text-[0.42em] font-semibold">%</span
+      >
+    </div>
+  </div>
+</div>

@@ -1,0 +1,133 @@
+---
+import Doodle from './ui/Doodle.astro';
+
+/**
+ * Mitos vs Fakta — konsep "coret mitosnya".
+ *
+ * Tiap mitos ditulis dengan tipografi besar, lalu saat di-scroll sebuah garis
+ * doodle tebal MENCORET kalimat itu (tergambar per baris, mengikuti scroll),
+ * teksnya meredup, dan faktanya menghantam masuk sebagai stiker lime miring.
+ * Interaksinya sendiri yang menyampaikan pesan: kebohongannya dicoret.
+ *
+ * Latar sengaja sama dengan section video setelahnya (purple-deep) supaya
+ * keduanya menyambung tanpa jahitan.
+ *
+ * Coretan digambar oleh scripts/sections/myths.js dalam piksel asli per baris
+ * (SplitText lines) — bukan satu SVG yang diregangkan, supaya tebal garisnya
+ * seragam. Tanpa JS / prefers-reduced-motion, CSS line-through mengambil alih
+ * (lihat global.css) sehingga mitosnya tidak pernah terbaca sebagai klaim.
+ */
+const items = [
+  {
+    myth: '“Stevia rasanya pahit.”',
+    fact: 'Stevia berkualitas tinggi manisnya bersih, tanpa aftertaste. Yang pahit itu biasanya stevia murahan.',
+  },
+  {
+    myth: '“Stevia itu pemanis buatan.”',
+    fact: 'Stevia diekstrak dari daun tanaman Stevia rebaudiana — asal alaminya sejelas gula tebu.',
+  },
+  {
+    myth: '“Tanpa gula = nggak bisa manis.”',
+    fact: 'Manisnya Thago datang dari buah asli plus stevia. Nol gula tambahan, nol kalori kosong.',
+  },
+  {
+    myth: '“Makanan sehat pasti nggak enak.”',
+    fact: 'Ya... makanya Thago ada. Cobain satu cup dulu sebelum menyimpulkan. 😌',
+  },
+];
+---
+
+<section id="fakta" data-myths data-nav-theme="dark" class="bg-purple-deep relative overflow-hidden px-5 py-24 md:py-32">
+  {/*
+    Peleburan batas dari section Nutrition di atas.
+
+    Indigo (#2f1b9c) dan purple-deep (#3b1a78) itu sama-sama gelap dengan
+    terang yang nyaris sama. Dipertemukan sebagai garis lurus, keduanya terbaca
+    seperti kesalahan render, bukan keputusan desain — mata melihat jahitan
+    tanpa alasan. Bentuk apa pun yang digambar di situ juga tidak akan menolong,
+    karena kontrasnya terlalu rendah untuk membuat siluet terbaca.
+
+    Jadi garisnya dihapus, bukan dihias: indigo diteruskan ke dalam section ini
+    lalu dilarutkan ke purple-deep.
+
+    Ditaruh di SINI, bukan di ekor Nutrition, karena Nutrition punya
+    `overflow-hidden` dan isinya berakhir dengan polaroid yang menonjol keluar —
+    menambah lapisan di sana berisiko menutupinya.
+
+    Elemen pertama di section supaya Doodle dan konten di bawahnya tetap
+    tergambar di atas gradasi ini.
+  */}
+  <div
+    class="pointer-events-none absolute inset-x-0 top-0 h-48 md:h-64"
+    style="background: linear-gradient(to bottom, var(--color-indigo), var(--color-purple-deep))"
+    aria-hidden="true"
+  >
+  </div>
+
+  {/*
+    Coretan marker yang menandai batas, ditumpuk DI ATAS gradasi.
+
+    Gradasi menghapus jahitannya; coretan ini yang memberinya karakter. Warnanya
+    pink #e52c74 — sama persis dengan coretan yang mencoret tiap mitos di bawah,
+    jadi terbaca sebagai motif yang sama, bukan hiasan yang kebetulan lewat.
+
+    Lebih lebar dari layar di mobile (170%) lalu dipusatkan. Bentuk ini
+    diskalakan proporsional, jadi kalau dipaksa pas selebar layar sempit,
+    goresannya ikut mengurus jadi ~3px dan hilang. Melebihkannya membuat tebal
+    goresan tetap sebanding sementara sebagian gelombangnya keluar layar — yang
+    memang perilaku goresan marker sungguhan.
+
+    `draw` menyerahkan penggambarannya ke initDoodles(): tergambar saat masuk
+    viewport, persis coretan mitosnya.
+  */}
+  <Doodle
+    name="strike"
+    draw
+    stroke={12}
+    class="text-pink pointer-events-none absolute top-4 left-1/2 w-[170%] max-w-none -translate-x-1/2 md:top-0 md:w-full"
+  />
+
+  <Doodle name="burst" class="text-lime absolute -left-8 top-12 w-24 opacity-40 md:w-40" parallax={0.55} />
+  <Doodle name="zigzag" class="text-pink absolute right-[6%] top-[8%] w-24 md:w-36" stroke={7} draw parallax={0.4} />
+  <Doodle name="sparkle" class="text-yellow absolute bottom-[10%] left-[8%] hidden w-10 md:block" stroke={6} draw parallax={0.6} />
+
+  <div class="relative mx-auto max-w-4xl">
+    <div class="flex flex-col items-center text-center">
+      <span class="sticker bg-lime text-ink mb-4 text-sm">biar clear ya</span>
+      <h2 class="display-md" data-anim data-myths-title>
+        <span class="text-pink">MITOS</span><br />
+        <span class="text-cream">vs FAKTA</span>
+      </h2>
+      <p class="text-cream/70 mt-4 max-w-lg text-base md:text-lg">
+        Banyak salah kaprah soal pemanis dan makanan sehat. Kita coret satu-satu.
+      </p>
+    </div>
+
+    <div class="mt-20 flex flex-col gap-24 md:mt-28 md:gap-32">
+      {
+        items.map((item, i) => (
+          <div class="flex flex-col items-center gap-7" data-myth>
+            <h3
+              class="font-display text-cream max-w-3xl text-center text-[clamp(1.7rem,4.4vw,3.6rem)] leading-[1.08] uppercase"
+              data-myth-text
+            >
+              {item.myth}
+            </h3>
+
+            <div
+              class={`bg-lime text-ink max-w-md rounded-2xl p-5 shadow-[0_10px_0_rgba(0,0,0,0.3)] md:p-6 ${
+                i % 2 === 0 ? 'rotate-2 md:translate-x-20' : '-rotate-2 md:-translate-x-20'
+              }`}
+              data-myth-fact
+            >
+              <span class="bg-ink/15 text-ink rounded-full px-3 py-1 text-xs font-bold tracking-widest uppercase">
+                ✓ faktanya
+              </span>
+              <p class="mt-2.5 text-sm leading-relaxed font-medium md:text-base">{item.fact}</p>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

@@ -1,0 +1,92 @@
+---
+/**
+ * ILUSTRASI PLACEHOLDER bahan — dipakai sebagai elemen melayang di Hero.
+ * Nanti diganti cutout foto asli (dragon fruit, ubi, stroberi) dengan
+ * background transparan. Prop & ukuran dibuat sama supaya tinggal tukar.
+ */
+type FruitName = 'dragonfruit' | 'ube' | 'strawberry' | 'chia' | 'matcha' | 'oat';
+
+interface Props {
+  name: FruitName;
+  class?: string;
+  /** kecepatan parallax scroll (lihat scripts/sections/parallax.js) */
+  parallax?: number;
+}
+const { name, class: className = '', parallax } = Astro.props;
+
+const seeds = [
+  [42, 40], [58, 34], [70, 48], [38, 58], [56, 62], [72, 68],
+  [46, 74], [62, 48], [30, 48], [54, 84],
+];
+---
+
+<svg
+  viewBox="0 0 100 100"
+  class={className}
+  aria-hidden="true"
+  data-parallax={parallax ?? null}
+  xmlns="http://www.w3.org/2000/svg"
+>
+  {
+    name === 'dragonfruit' && (
+      <>
+        <circle cx="50" cy="52" r="42" fill="#e52c74" />
+        <circle cx="50" cy="52" r="34" fill="#fdf3f7" />
+        {seeds.map(([cx, cy]) => (
+          <ellipse cx={cx} cy={cy} rx="2.6" ry="3.4" fill="#241463" transform={`rotate(18 ${cx} ${cy})`} />
+        ))}
+        <path d="M50,10 a42,42 0 0 1 36,21" stroke="#ff5c96" stroke-width="7" fill="none" stroke-linecap="round" />
+      </>
+    )
+  }
+  {
+    name === 'ube' && (
+      <>
+        <path d="M22,38 L50,22 L78,38 L78,70 L50,86 L22,70 Z" fill="#9b6ad8" />
+        <path d="M22,38 L50,54 L50,86 L22,70 Z" fill="#6b3aa8" />
+        <path d="M78,38 L50,54 L50,86 L78,70 Z" fill="#7f4dc0" />
+        <path d="M22,38 L50,22 L78,38 L50,54 Z" fill="#b78ce6" />
+      </>
+    )
+  }
+  {
+    name === 'strawberry' && (
+      <>
+        <path d="M50,92 C22,74 16,50 26,36 C36,22 64,22 74,36 C84,50 78,74 50,92 Z" fill="#e52c74" />
+        <path d="M38,30 L50,14 L62,30 L54,28 L50,36 L46,28 Z" fill="#7fae2e" />
+        {[[40, 44], [56, 42], [48, 56], [36, 60], [60, 58], [50, 72]].map(([cx, cy]) => (
+          <ellipse cx={cx} cy={cy} rx="2.4" ry="3.2" fill="#f6d43c" />
+        ))}
+      </>
+    )
+  }
+  {
+    name === 'chia' && (
+      <>
+        {[[30, 40, 12], [52, 30, -20], [70, 46, 34], [40, 62, 8], [62, 68, -12], [50, 50, 26]].map(
+          ([cx, cy, r]) => (
+            <ellipse cx={cx} cy={cy} rx="9" ry="6.4" fill="#3b2a5e" transform={`rotate(${r} ${cx} ${cy})`} />
+          )
+        )}
+      </>
+    )
+  }
+  {
+    name === 'matcha' && (
+      <>
+        <path d="M50,90 C18,72 18,30 50,10 C82,30 82,72 50,90 Z" fill="#7fae2e" />
+        <path d="M50,90 C50,60 50,36 50,10" stroke="#4f7018" stroke-width="4" fill="none" stroke-linecap="round" />
+        <path d="M50,40 L34,30 M50,56 L34,48 M50,40 L66,30 M50,56 L66,48" stroke="#4f7018" stroke-width="3" stroke-linecap="round" />
+      </>
+    )
+  }
+  {
+    name === 'oat' && (
+      <>
+        <ellipse cx="50" cy="52" rx="34" ry="26" fill="#e8dcc0" />
+        <ellipse cx="50" cy="52" rx="34" ry="26" fill="none" stroke="#c9b48a" stroke-width="4" />
+        <path d="M32,50 q18,-12 36,0 M32,62 q18,-12 36,0" stroke="#c9b48a" stroke-width="4" fill="none" stroke-linecap="round" />
+      </>
+    )
+  }
+</svg>

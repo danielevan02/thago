@@ -1,0 +1,204 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------
+   Design tokens — diambil dari palet feed Instagram @thago
+   Ganti nilainya di sini kalau brand guideline resmi sudah ada.
+---------------------------------------------------------------- */
+@theme {
+  --color-ink: #241463;
+  --color-indigo: #2f1b9c;
+  --color-purple: #5e2ca5;
+  --color-purple-deep: #3b1a78;
+  --color-pink: #e52c74;
+  --color-pink-soft: #fbc9dc;
+  --color-lime: #b4d63c;
+  --color-yellow: #f6d43c;
+  --color-cream: #faf5e9;
+  --color-cream-deep: #f2ead6;
+  /* Nyaris hitam, disemburat ungu supaya tetap satu keluarga dengan brand.
+     Muncul di belakang panggung hero saat panggungnya miring menjauh. */
+  --color-void: #120a24;
+
+  --font-display: 'Modak', system-ui, cursive;
+  --font-body: 'Fredoka Variable', system-ui, sans-serif;
+  --font-hand: 'Caveat Variable', system-ui, cursive;
+
+  --ease-bubble: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@layer base {
+  html {
+    /* Lenis mengurus smooth scroll — matikan bawaan browser */
+    scroll-behavior: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 0.88;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+}
+
+@layer components {
+  /* Headline raksasa yang skalanya ikut viewport, ala SPYLT */
+  .display-xl {
+    font-size: clamp(3rem, 13vw, 12rem);
+  }
+  .display-lg {
+    font-size: clamp(2.5rem, 9vw, 8rem);
+  }
+  .display-md {
+    font-size: clamp(2rem, 6vw, 5rem);
+  }
+
+  /* Outline text — dipakai untuk kata yang belum "menyala" */
+  .text-stroke {
+    -webkit-text-stroke: 2px currentColor;
+    color: transparent;
+  }
+
+  /* Bubble sticker seperti di feed IG */
+  .sticker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    border-radius: 999px;
+    padding: 0.5em 1.1em;
+    font-weight: 600;
+    line-height: 1.1;
+    box-shadow: 0 4px 0 rgb(36 20 99 / 0.18);
+  }
+
+  /* Dipakai sebagai linesClass SplitText: tiap baris jadi jendela, sehingga
+     kata bisa "naik" dari bawah garis tanpa terlihat menembus baris lain. */
+  .paragraph-line {
+    overflow: hidden;
+  }
+
+  .btn-bubble {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    border-radius: 999px;
+    padding: 0.85em 1.8em;
+    font-weight: 600;
+    font-size: 1.05rem;
+    line-height: 1;
+    transition:
+      transform 0.25s var(--ease-bubble),
+      box-shadow 0.25s var(--ease-bubble);
+    box-shadow: 0 6px 0 rgb(36 20 99 / 0.25);
+  }
+  .btn-bubble:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 9px 0 rgb(36 20 99 / 0.25);
+  }
+  .btn-bubble:active {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 rgb(36 20 99 / 0.25);
+  }
+}
+
+/* ---------------------------------------------------------------
+   Utilities animasi
+---------------------------------------------------------------- */
+
+/* Elemen yang dianimasikan SplitText/GSAP disembunyikan dulu supaya
+   tidak "berkedip" sebelum JS jalan. .is-ready dipasang oleh main.js. */
+[data-anim]:not(.is-ready) {
+  visibility: hidden;
+}
+
+.no-js [data-anim],
+.reduced-motion [data-anim] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Tanpa JS, preloader tidak akan pernah dibongkar timeline-nya — sembunyikan
+   supaya halaman tetap bisa dibaca. */
+.no-js [data-preloader] {
+  display: none;
+}
+
+/* Kondisi awal preloader ditulis di CSS, bukan menunggu JS: skrip baru jalan
+   ~100 ms setelah cat pertama, dan tanpa ini wordmark-nya sempat berkedip
+   lengkap DAN terisi penuh sebelum animasinya mulai — persis kebalikan dari
+   yang mau ditampilkan. Dilingkupi [data-preloader] supaya logo navbar yang
+   memakai atribut sama tidak ikut tersembunyi.
+
+   Konsekuensinya preloader.js WAJIB memakai set()+to(), bukan from(): dengan
+   opasitas awal 0 di CSS, from() akan membaca 0 itu sebagai nilai AKHIR dan
+   hurufnya tidak pernah muncul. */
+[data-preloader] [data-logo-letter] {
+  opacity: 0;
+}
+
+/* Grup gelombangnya sendiri sudah SSR pada posisi kosong (translate 0 1),
+   jadi rujukan clip ini aman dipasang sejak cat pertama. */
+[data-preloader-fill] {
+  clip-path: url(#thago-fill);
+}
+
+/* Kotak highlight <ClipTitle> lahir dalam keadaan ter-clip jadi sesobek tipis,
+   dan yang membukanya HANYA script tiap section. Padahal saat reduced-motion
+   main.js berhenti lebih awal dan script-script itu tidak pernah dipanggil —
+   tanpa JS, apalagi.
+
+   Akibatnya satu kata kunci di hampir tiap judul (RASA, JUJUR, TIGA KEKUATAN,
+   keempat judul Manfaat, Message) lenyap total, dan yang tersisa kalimat yang
+   menggantung: "Kami punya 6 ___ yang bikin nagih".
+
+   !important karena clip-path awalnya ditulis sebagai atribut style inline di
+   komponennya, jadi selektor biasa kalah spesifisitas. */
+.no-js [data-clip-title],
+.reduced-motion [data-clip-title] {
+  clip-path: none !important;
+}
+
+/* Coretan mitos digambar JS (section Mitos vs Fakta). Tanpa JS atau saat
+   reduced-motion, line-through mengambil alih — mitos tidak boleh pernah
+   tampil polos, nanti terbaca sebagai klaim beneran. */
+.no-js [data-myth-text],
+.reduced-motion [data-myth-text] {
+  text-decoration: line-through;
+  text-decoration-color: var(--color-pink);
+  text-decoration-thickness: 0.09em;
+  opacity: 0.75;
+}
+
+/* Marquee murni CSS (dipakai kalau JS gagal / reduced motion) */
+@keyframes marquee-slide {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

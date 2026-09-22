@@ -1,0 +1,108 @@
+---
+import '@fontsource/modak/latin-400.css';
+import '@fontsource-variable/fredoka/wght.css';
+import '@fontsource-variable/caveat/wght.css';
+import '../styles/global.css';
+import Logo from '../components/ui/Logo.astro';
+import Doodle from '../components/ui/Doodle.astro';
+import { products, drinks } from '../data/products';
+
+/**
+ * Sumber gambar Open Graph & logo — BUKAN halaman untuk pengunjung.
+ *
+ * Gambarnya digambar di sini, bukan di Figma, supaya wordmark, warna, font,
+ * dan foto produknya selalu sama dengan yang berlaku di kode. Begitu ada varian
+ * baru atau warna brand berubah, cukup jalankan ulang:
+ *
+ *   node scripts/build-og-image.mjs
+ *
+ * Script itu memotret #og-card jadi public/og-image.png (1200×630) dan #og-logo
+ * jadi public/logo.png (512×512), memakai Chromium headless supaya Modak benar
+ * ter-render — rasterizer SVG biasa tidak punya akses ke font woff2 ini.
+ *
+ * Halaman ini di-noindex dan dikeluarkan dari sitemap. Ia memang ikut ter-build
+ * ke /og/, dan itu disengaja: script pemotretnya perlu URL yang bisa dibuka.
+ */
+
+// Empat cup paling kontras warnanya + ketiga botol. Sembilan produk sekaligus
+// terlalu ramai di ukuran pratinjau WhatsApp yang cuma beberapa sentimeter.
+// Tiga cup paling kontras warnanya + ketiga botol. Enam produk adalah batas
+// yang muat di lebar 1072px (1200 dikurangi padding kiri-kanan) pada ukuran
+// yang masih terbaca; tujuh membuat botol terakhir terpotong tepi kanan.
+const cups = ['strawberry', 'chocolate-banana', 'green-tea-strawberry']
+  .map((id) => products.find((p) => p.id === id)!)
+  .filter(Boolean);
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Sumber OG image Thago</title>
+    <style>
+      body {
+        margin: 0;
+        background: #3b1a78;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 24px;
+        padding: 24px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ============ 1200×630 untuk og:image ============ -->
+    <div
+      id="og-card"
+      class="bg-purple relative flex overflow-hidden"
+      style="width:1200px;height:630px"
+    >
+      <Doodle name="sparkle" class="text-yellow absolute right-[6%] top-[11%] w-14" stroke={6} />
+      <Doodle name="squiggle" class="text-lime/35 absolute right-[4%] top-[34%] w-36" stroke={7} />
+
+      <div class="relative flex w-full flex-col justify-between px-16 pb-10 pt-14">
+        <div>
+          <div class="text-indigo w-[360px]">
+            <Logo class="w-full" shadow={false} />
+          </div>
+          <p class="font-hand text-lime mt-6 text-[40px] leading-none">
+            chia pudding &amp; cold pressed juice
+          </p>
+          <p class="text-cream/80 mt-4 max-w-[560px] text-[22px] leading-snug">
+            Tanpa gula tambahan — manisnya dari stevia. Diantar dingin.
+          </p>
+        </div>
+
+        <!-- Produk dijajarkan rapat di dasar kartu. Cup dan botol punya rasio
+             yang jauh berbeda, jadi yang disamakan TINGGINYA, bukan lebarnya —
+             kalau lebarnya yang dikunci, botolnya jadi menjulang dua kali cup. -->
+        <div class="-mx-10 flex items-end justify-center gap-3">
+          {
+            cups.map((p) => (
+              <img src={p.photo} alt="" style="height:222px;width:auto" class="drop-shadow-2xl" />
+            ))
+          }
+          {
+            drinks.map((d) => (
+              <img src={d.photo} alt="" style="height:264px;width:auto" class="drop-shadow-2xl" />
+            ))
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 512×512 untuk Organization.logo ============ -->
+    <div
+      id="og-logo"
+      class="bg-purple flex items-center justify-center overflow-hidden"
+      style="width:512px;height:512px"
+    >
+      <div class="text-indigo w-[380px]">
+        <Logo class="w-full" shadow={false} />
+      </div>
+    </div>
+  </body>
+</html>
