@@ -63,9 +63,75 @@ export default function initTestimonials() {
   const lines = gsap.utils.toArray('[data-testi-line]', section);
   const cards = gsap.utils.toArray('[data-testi-card]', section);
 
+  /**
+   * Suara berlaku untuk SELURUH kartu, bukan per kartu, dan dipasang di sini —
+   * di luar matchMedia — karena kedua jalur memakainya: hover di desktop, dan
+   * autoplay-saat-di-tengah di layar sentuh.
+   *
+   * Sekali pengunjung menyalakannya, kartu berikutnya ikut bersuara.
+   * Mematikannya lagi di tiap kartu cuma menyebalkan, dan secara teknis klik
+   * pertama itulah yang membuka kunci autoplay bersuara di Chrome dan Safari.
+   */
+  let soundOn = false;
+  const soundButtons = gsap.utils.toArray('[data-testi-sound]', section);
+
+  const syncSoundButtons = () => {
+    soundButtons.forEach((btn) => {
+      btn.setAttribute('aria-pressed', String(soundOn));
+      btn.setAttribute('aria-label', soundOn ? 'Matikan suara' : 'Nyalakan suara');
+      btn.querySelector('[data-icon-off]')?.classList.toggle('hidden', soundOn);
+      btn.querySelector('[data-icon-on]')?.classList.toggle('hidden', !soundOn);
+    });
+  };
+
+  /**
+   * Putar dengan menghormati pilihan suara, DENGAN jaring pengaman: autoplay
+   * bersuara masih bisa ditolak browser meski sudah ada gestur. Kalau itu
+   * terjadi, lebih baik videonya tetap jalan tanpa suara daripada diam.
+   */
+  const playCard = (video) => {
+    if (!video) return;
+    video.muted = !soundOn;
+    video.play?.().catch(() => {
+      video.muted = true;
+      video.play?.().catch(() => {});
+    });
+  };
+
+  // Tombol suara dipasang sekali untuk semua kartu, lepas dari breakpoint.
+  soundButtons.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      // Tombol ini duduk di atas video — tanpa ini kliknya bisa diteruskan.
+      e.stopPropagation();
+      soundOn = !soundOn;
+      syncSoundButtons();
+      // Diterapkan SEKARANG, di dalam handler klik: di titik inilah gestur
+      // penggunanya masih berlaku dan autoplay bersuara diizinkan.
+      const video = btn.closest('[data-testi-card]')?.querySelector('video');
+      if (video) {
+        video.muted = !soundOn;
+        if (video.paused) playCard(video);
+      }
+    });
+  });
+
+  const mm = gsap.matchMedia();
+  const DESKTOP = '(min-width: 1024px)';
+  const TOUCH = '(max-width: 1023px)';
+
   // --- 1. judul terurai horizontal ---
   if (lines.length) {
-    const drift = [70, 25, -50];
+    /**
+     * Amplitudonya dikecilkan drastis di layar sempit.
+     *
+     * ±70% dari lebar kata raksasa itu ratusan piksel di desktop — di sana
+     * masih ada ruang kosong di kiri-kanan untuk menampungnya. Di 390px,
+     * geseran yang sama melempar "APA" dan "MEREKA" keluar layar, dan yang
+     * tersisa cuma potongan huruf; section-nya terbaca seperti gagal memuat,
+     * bukan seperti judul yang terurai.
+     */
+    const wide = window.matchMedia(DESKTOP).matches;
+    const drift = wide ? [70, 25, -50] : [18, 6, -14];
     gsap
       .timeline({
         scrollTrigger: {
@@ -79,8 +145,18 @@ export default function initTestimonials() {
       .to(lines, { xPercent: (i) => drift[i] ?? 0, ease: 'none' }, 0);
   }
 
-  // --- 2. kartu terbang naik, SETELAH baris ketiga terbaca ---
-  if (cards.length) {
+  /**
+   * --- 2. kipas kartu: HANYA dari 1024px ke atas ---
+   *
+   * Seluruh mesin di bawah ini — pin, rayapan, framing kipas — melayani satu
+   * bentuk: tumpukan kartu miring yang dibuka dengan hover. Di layar sentuh
+   * bentuk itu tidak pernah bisa dibuka, dan pin-nya justru merampas scroll di
+   * perangkat yang paling tidak menyukainya. Markup-nya di bawah 1024px sudah
+   * berganti jadi carousel snap biasa, jadi di sana tidak ada yang perlu
+   * dipasang selain reveal sederhana.
+   */
+  mm.add(DESKTOP, () => {
+    if (!cards.length) return;
     const lastLine = lines[lines.length - 1] ?? section;
 
     /**
@@ -123,7 +199,8 @@ export default function initTestimonials() {
       if (!cardsBox) return;
       const vh = window.innerHeight;
       // posisi atas section di layar selama pin (negatif = sudah lewat atas)
-      const sectionTopOnScreen = section.getBoundingClientRect().top + window.scrollY - pinStart();
+      const sectionTopOnScreen =
+        section.getBoundingClientRect().top + window.scrollY - pinStart();
       const creep = vh * PIN_FRACTION * CREEP_RATE;
 
       // Sasaran: puncak kipas di layar. Dihitung dari tinggi kipas yang
@@ -180,16 +257,87 @@ export default function initTestimonials() {
           ease: 'none',
           duration: SPAN,
         },
-        0
+        0,
       );
-  }
+
+    // Listener refreshInit itu manual, di luar jangkauan pembersihan otomatis
+    // gsap.matchMedia — tanpa dilepas, ia menumpuk tiap kali lebar layar
+    // melintasi 1024px bolak-balik, dan frameCards() akan terus memaksa
+    // `bottom` pada kipas yang di bawah 1024px sudah bukan kipas lagi.
+    return () => {
+      ScrollTrigger.removeEventListener('refreshInit', frameCards);
+      if (cardsBox) cardsBox.style.bottom = '';
+    };
+  });
+
+  /**
+   * --- 2b. layar sentuh: reveal sederhana ---
+   *
+   * Tanpa pin dan tanpa kipas. Kartunya naik sedikit sambil memudar masuk,
+   * berurutan — cukup untuk menandai bahwa barisnya hidup, tanpa merebut
+   * kendali scroll dari jari.
+   */
+  mm.add(TOUCH, () => {
+    if (!cards.length) return;
+    gsap.set(cards, { y: 48, opacity: 0 });
+    gsap.to(cards, {
+      y: 0,
+      opacity: 1,
+      duration: 0.6,
+      ease: 'power3.out',
+      stagger: 0.1,
+      scrollTrigger: {
+        trigger: cardsBox ?? section,
+        start: 'top 85%',
+        once: true,
+      },
+    });
+    /**
+     * Video main sendiri saat kartunya berhenti di tengah, lalu berhenti
+     * begitu tergeser pergi — pola yang sudah jadi refleks di layar sentuh.
+     *
+     * Tetap SENYAP: autoplay bersuara diblokir browser sampai ada gestur
+     * pengguna, dan suara yang tiba-tiba keluar saat orang menggulir adalah
+     * cara tercepat membuat halaman ditutup. Tombol speaker di sudut kartu
+     * yang menyalakannya, dan klik itulah gestur yang membuka kuncinya.
+     *
+     * root-nya wadah carousel, bukan viewport: yang menentukan "sedang
+     * dilihat" di sini adalah posisi kartu di dalam barisnya sendiri.
+     */
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          const video = e.target.querySelector('video');
+          if (!video) return;
+          if (e.isIntersecting) {
+            video.muted = !soundOn;
+            video.play?.().catch(() => {
+              video.muted = true;
+              video.play?.().catch(() => {});
+            });
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { root: cardsBox, threshold: 0.6 },
+    );
+    cards.forEach((c) => io.observe(c));
+
+    return () => {
+      io.disconnect();
+      gsap.set(cards, { clearProps: 'y,opacity' });
+    };
+  });
 
   /* --- 3. hover: kartu tegak, yang lain menyingkir, videonya main --- */
 
   // Hanya untuk penunjuk yang benar-benar bisa hover. Di layar sentuh,
   // `mouseenter` tetap terpicu sekali saat disentuh lalu tidak pernah ada
   // `mouseleave` — kartunya akan tersangkut tegak selamanya.
-  const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const canHover =
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
+    window.matchMedia(DESKTOP).matches;
 
   if (canHover && cards.length) {
     /**
@@ -242,7 +390,7 @@ export default function initTestimonials() {
       // Inilah bedanya dengan versi lama yang memakai satu OPEN_RIGHT untuk
       // semua — di sana seluruh kipas melebar, dan tepinya yang jadi korban.
       openRight = rects.map((r) =>
-        Math.round(Math.min(NEED_RIGHT, Math.max(0, window.innerWidth - EDGE - r.right)))
+        Math.round(Math.min(NEED_RIGHT, Math.max(0, window.innerWidth - EDGE - r.right))),
       );
 
       // Kalau tetangga kanan tidak bisa menyingkir penuh (terjadi saat yang
@@ -262,60 +410,9 @@ export default function initTestimonials() {
     ScrollTrigger.addEventListener('refreshInit', measureOpen);
     measureOpen();
 
-    /**
-     * Suara berlaku untuk SELURUH kartu, bukan per kartu.
-     *
-     * Sekali pengunjung menyalakannya, hover berikutnya ikut bersuara —
-     * mematikannya lagi di tiap kartu cuma akan menyebalkan. Dan secara teknis
-     * klik pertama itulah yang membuka kunci autoplay bersuara di Chrome dan
-     * Safari, jadi memang tidak masuk akal menyimpannya per kartu.
-     */
-    let soundOn = false;
-    const soundButtons = gsap.utils.toArray('[data-testi-sound]', section);
-
-    const syncSoundButtons = () => {
-      soundButtons.forEach((btn) => {
-        btn.setAttribute('aria-pressed', String(soundOn));
-        btn.setAttribute('aria-label', soundOn ? 'Matikan suara' : 'Nyalakan suara');
-        btn.querySelector('[data-icon-off]')?.classList.toggle('hidden', soundOn);
-        btn.querySelector('[data-icon-on]')?.classList.toggle('hidden', !soundOn);
-      });
-    };
-
-    /**
-     * Putar dengan menghormati pilihan suara, DENGAN jaring pengaman.
-     *
-     * Meski soundOn baru bisa true setelah ada klik, autoplay bersuara masih
-     * bisa ditolak — misalnya kalau pengunjung mematikan autoplay media di
-     * setelan browser. Kalau itu terjadi, lebih baik videonya tetap jalan
-     * tanpa suara daripada diam sama sekali.
-     */
-    const playCard = (video) => {
-      if (!video) return;
-      video.muted = !soundOn;
-      video.play?.().catch(() => {
-        video.muted = true;
-        video.play?.().catch(() => {});
-      });
-    };
-
     cards.forEach((card, i) => {
       const base = Number(card.dataset.rot) || 0;
       const video = card.querySelector('video');
-
-      card.querySelector('[data-testi-sound]')?.addEventListener('click', (e) => {
-        // Kartunya sendiri tidak punya handler klik, tapi tombol ini duduk di
-        // atas video — tanpa ini, klik bisa ikut diteruskan ke kontrol bawaan.
-        e.stopPropagation();
-        soundOn = !soundOn;
-        syncSoundButtons();
-        // Diterapkan ke video kartu ini SEKARANG, di dalam handler klik:
-        // di titik inilah gestur penggunanya masih berlaku.
-        if (video) {
-          video.muted = !soundOn;
-          if (video.paused) playCard(video);
-        }
-      });
 
       card.addEventListener('mouseenter', () => {
         // SENGAJA tidak menyentuh zIndex. Menaikkannya membuat kartu melompat
@@ -364,7 +461,12 @@ export default function initTestimonials() {
 
         cards.forEach((other, j) => {
           if (j === i) return;
-          gsap.to(other, { x: 0, duration: 0.5, ease: 'power2.out', overwrite: 'auto' });
+          gsap.to(other, {
+            x: 0,
+            duration: 0.5,
+            ease: 'power2.out',
+            overwrite: 'auto',
+          });
         });
 
         if (video) {

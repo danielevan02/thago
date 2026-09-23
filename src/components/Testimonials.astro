@@ -54,6 +54,20 @@ const rot = [-10, 4, -4, 4, -10, 4];
 const shift = ['-5%', '0%', '-5%', '5%', '0%', '5%'];
 
 /**
+ * HANYA kartu yang punya video yang dirender.
+ *
+ * Tiga slot terakhir masih kosong, dan sebagai placeholder mereka tampil ke
+ * pengunjung sebagai kartu krem bertuliskan "Video menyusul". Di desktop itu
+ * separuh kipas; di mobile, yang terlihat justru HAMPIR SELURUHNYA kartu
+ * kosong — kartu bervideo satu-satunya tergeser keluar layar. Sebuah section
+ * testimoni yang isinya janji kosong lebih buruk daripada testimoni yang
+ * cuma tiga.
+ *
+ * Begitu videonya ada, cukup isi `video` + `poster` dan kartunya muncul lagi.
+ */
+const shown = cards.filter((c) => c.video);
+
+/**
  * Ukuran kartu mengikuti .vd-card referensi: `md:w-96` dengan tumpang
  * `-ms-44` (176px dari 384px = 46%), border tebal sewarna latar, sudut
  * `2vw`. Rasio 9:16 karena isinya video vertikal hasil rekaman HP.
@@ -80,10 +94,26 @@ const shift = ['-5%', '0%', '-5%', '5%', '0%', '5%'];
  */
 // `group` dipakai tombol suara di dalamnya supaya ia hanya muncul saat kartu
 // ini di-hover — sejalan dengan kapan videonya diputar.
+/**
+ * Kartu punya DUA bentuk yang berbeda sama sekali.
+ *
+ * Di bawah 1024px ia satu slide carousel: lebar penuh-ish, tegak, tanpa
+ * tumpangan, snap di tengah. Kipas bertumpuk itu gagasan desktop — ia bekerja
+ * karena ada kursor yang bisa hover untuk membuka kartu di baliknya. Di layar
+ * sentuh tidak ada hover, jadi yang tersisa cuma tumpukan terpotong yang tidak
+ * bisa diapa-apakan: lebarnya 184vw di mobile, dua kali layar.
+ *
+ * Dari 1024px ke atas barulah kipasnya dipasang, lengkap dengan rotasi dan
+ * geseran vertikalnya. Keduanya lewat custom property supaya bisa dimatikan
+ * per breakpoint — kalau ditulis sebagai style inline, nilainya menang atas
+ * kelas apa pun dan kartunya tetap miring saat di-snap.
+ */
 const CARD =
   'group border-cream bg-cream-deep relative flex-none overflow-hidden shadow-[0_14px_28px_rgba(36,20,99,0.22)]' +
-  ' w-[74vw] rounded-3xl border-4 [&:not(:first-child)]:-ml-[52vw]' +
-  ' md:w-96 md:rounded-[2vw] md:border-[0.5vw] md:[&:not(:first-child)]:-ml-44';
+  ' w-[76vw] max-w-[340px] snap-center rounded-3xl border-4' +
+  ' lg:snap-align-none' +
+  ' lg:w-96 lg:max-w-none lg:rounded-[2vw] lg:border-[0.5vw]' +
+  ' lg:rotate-[var(--rot)] lg:translate-y-[var(--shift)] lg:[&:not(:first-child)]:-ml-44';
 
 const TITLE =
   'font-display uppercase leading-[1.02] tracking-[-0.03em] text-[clamp(3.2rem,20.5vw,18rem)]';
@@ -114,7 +144,7 @@ const TITLE =
   id="testimoni"
   data-testimonials
   data-nav-theme="light"
-  class="bg-cream relative z-10 h-[130vh] overflow-hidden md:h-[max(72vw_+_45vh,130vh)]"
+  class="bg-cream relative z-10 overflow-hidden py-[12vh] lg:h-[max(72vw_+_45vh,130vh)] lg:py-0"
 >
   <!--
     Satu pembungkus untuk judul DAN kartu. Selama section ter-pin, pembungkus
@@ -122,9 +152,9 @@ const TITLE =
     terlihat membeku — di referensi efek yang sama muncul karena tween
     `marginTop` tetap berjalan pada section yang sudah `position: fixed`.
   -->
-  <div class="absolute inset-0" data-testi-inner>
+  <div class="relative lg:absolute lg:inset-0" data-testi-inner>
     <!-- tiga baris judul raksasa; bergeser horizontal mengikuti scroll -->
-    <div class="absolute inset-x-0 top-0 flex flex-col items-center pt-[6vw]">
+    <div class="flex flex-col items-center lg:absolute lg:inset-x-0 lg:top-0 lg:pt-[6vw]">
       <h2 class={`${TITLE} text-indigo`} data-testi-line>APA</h2>
       <h2 class={`${TITLE} text-pink`} data-testi-line>KATA</h2>
       <h2 class={`${TITLE} text-indigo`} data-testi-line>MEREKA</h2>
@@ -141,15 +171,22 @@ const TITLE =
       yang benar bergantung pada posisi section saat ter-pin — dan itu ikut
       tinggi judul (20.5vw), jadi berbeda ratusan piksel antar lebar layar.
     -->
+    <!--
+      Di sentuh ini baris yang bisa digeser jari: snap-mandatory supaya tiap
+      kartu berhenti pas di tengah, dan padding kiri-kanan 12vw supaya kartu
+      pertama & terakhir tetap bisa duduk di tengah layar saat di-snap.
+      scrollbar disembunyikan — barisnya sudah jelas bisa digeser dari kartu
+      berikutnya yang mengintip.
+    -->
     <div
-      class="absolute inset-x-0 bottom-[4vh] flex justify-center"
+      class="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-[12vw] pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mt-0 lg:absolute lg:inset-x-0 lg:bottom-[4vh] lg:snap-none lg:gap-0 lg:overflow-visible lg:px-0 lg:pb-0 lg:justify-center"
       data-testi-cards
     >
       {
-        cards.map((card, i) => (
+        shown.map((card, i) => (
           <div
             class={CARD}
-            style={`rotate:${rot[i]}deg; translate: 0 ${shift[i]}`}
+            style={`--rot:${rot[i]}deg; --shift:${shift[i]}`}
             data-testi-card
             data-rot={rot[i]}
           >
@@ -179,11 +216,11 @@ const TITLE =
               begitu videonya masuk, isi rekaman HP bisa terang atau gelap,
               tidak bisa ditebak.
             */}
-            <div class="bg-ink/75 absolute top-3 left-3 flex items-center gap-2 rounded-full py-1 pr-3 pl-1 backdrop-blur-sm md:top-[1vw] md:left-[1vw] md:gap-[0.5vw]">
-              <span class="ring-cream/70 bg-purple text-cream font-display grid h-7 w-7 place-items-center rounded-full text-[0.65rem] ring-2 md:h-[2vw] md:w-[2vw] md:text-[0.85vw]">
+            <div class="bg-ink/75 absolute top-3 left-3 flex items-center gap-2 rounded-full py-1 pr-3 pl-1 backdrop-blur-sm lg:top-[1vw] lg:left-[1vw] lg:gap-[0.5vw]">
+              <span class="ring-cream/70 bg-purple text-cream font-display grid h-7 w-7 place-items-center rounded-full text-[0.65rem] ring-2 lg:h-[2vw] lg:w-[2vw] lg:text-[0.85vw]">
                 {card.name[0]}
               </span>
-              <span class="text-cream font-display text-[0.72rem] md:text-[0.95vw]">
+              <span class="text-cream font-display text-[0.72rem] lg:text-[0.95vw]">
                 {card.name}
               </span>
             </div>
@@ -211,7 +248,7 @@ const TITLE =
                 data-testi-sound
                 aria-label="Nyalakan suara"
                 aria-pressed="false"
-                class="bg-ink/75 text-cream absolute top-3 right-3 grid h-8 w-8 place-items-center rounded-full opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100 md:top-[1vw] md:right-[1vw] md:h-[2.4vw] md:w-[2.4vw]"
+                class="bg-ink/75 text-cream absolute top-3 right-3 grid h-11 w-11 place-items-center rounded-full backdrop-blur-sm transition-opacity focus-visible:opacity-100 lg:top-[1vw] lg:right-[1vw] lg:h-[2.4vw] lg:w-[2.4vw] lg:opacity-0 lg:group-hover:opacity-100"
               >
                 <svg
                   viewBox="0 0 24 24"

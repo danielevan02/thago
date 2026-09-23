@@ -129,9 +129,15 @@ import CircleBadge from './ui/CircleBadge.astro';
         Ukuran 15vw = ukuran cincin teks di referensi. Cincinnya sengaja lebih
         besar dari lingkaran clip awal (6%), jadi di awal ia terpotong dan
         baru tersingkap penuh saat lingkarannya mengembang.
+
+        Angka mobile-nya HARUS lebih kecil dari celah caption di bawah, dan
+        dulu tidak: di 390px badge 44vw = 172px sementara celahnya mentok di
+        batas bawah clamp, 10rem = 160px. Stempelnya menindih kedua baris judul.
+        Sekarang 38vw = 148px di dalam celah 12rem = 192px, menyisakan 22px di
+        atas dan di bawah. Kalau salah satunya diubah, periksa yang lain.
       -->
       <div class="absolute inset-0 flex items-center justify-center" data-videopin-badge>
-        <CircleBadge class="w-[44vw] md:w-[15vw]" />
+        <CircleBadge class="w-[38vw] md:w-[15vw]" />
       </div>
     </div>
 
@@ -176,7 +182,7 @@ import CircleBadge from './ui/CircleBadge.astro';
       memenuhi layar, karena ia datang belakangan di DOM.
     -->
     <div
-      class="pointer-events-none sticky top-0 -mt-[100svh] flex h-[100svh] flex-col items-center justify-center gap-[clamp(10rem,32vmin,20rem)] px-5 text-center md:-mt-[50svh] md:h-[110svh]"
+      class="pointer-events-none sticky top-0 -mt-[100svh] flex h-[100svh] flex-col items-center justify-center gap-[clamp(12rem,32vmin,20rem)] px-5 text-center md:-mt-[50svh] md:h-[110svh]"
       data-videopin-caption
     >
       <h2 class="display-md text-cream/90">DIFOTO DULU,</h2>

@@ -103,11 +103,20 @@ const tilt = [-2.5, 1.8, -1.4];
     </div>
 
     <!-- ---------------- tiga botol ---------------- -->
-    <div class="mt-16 grid gap-y-16 sm:grid-cols-2 sm:gap-x-6 md:mt-20 lg:grid-cols-3 lg:gap-x-8">
+    <!--
+      Satu kolom sampai 768px, dua di tablet, tiga dari 1024px.
+
+      Yang ketiga di tablet dibuat melebar dua kolom lalu dipusatkan. Tanpa itu
+      ia duduk sendirian di kolom kiri dan barisnya terbaca seperti ada kartu
+      yang gagal dimuat — masalah klasik grid tiga item berkolom genap.
+      Lebarnya tetap dibatasi max-w kartu, jadi melebar di sini artinya
+      terpusat, bukan membesar.
+    -->
+    <div class="mt-16 grid gap-y-16 md:grid-cols-2 md:gap-x-6 md:mt-20 lg:grid-cols-3 lg:gap-x-8">
       {
         drinks.map((d, i) => (
           <article
-            class="group relative mx-auto flex w-full max-w-[380px] flex-col"
+            class="group relative mx-auto flex w-full max-w-[380px] flex-col md:[&:last-child]:col-span-2 lg:[&:last-child]:col-span-1"
             style={`rotate:${tilt[i % tilt.length]}deg`}
             data-drink-card
           >
