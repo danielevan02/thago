@@ -87,6 +87,8 @@ function boot() {
     // WAJIB: sejak semua tautan pindah ke dalam menu selayar penuh,
     // melewatkan initNav di sini berarti situsnya tanpa navigasi sama sekali.
     initNav({ reduced: true });
+    // Titik & panah carousel varian di mobile — tanpa gerak, tapi harus bisa diklik.
+    initProducts({ reduced: true });
     return;
   }
 

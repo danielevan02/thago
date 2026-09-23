@@ -13,17 +13,30 @@ import { SplitText } from 'gsap/SplitText';
  *     berbeda (-30% / -22% / -10%, angka yang sama dipakai SPYLT), sehingga
  *     judulnya terurai berlapis alih-alih bergerak sebagai satu blok kaku.
  */
-export default function initProducts() {
+export default function initProducts({ reduced = false } = {}) {
   const section = document.querySelector('[data-products]');
   if (!section) return;
 
+  // Reduced-motion: tidak ada pin, tidak ada animasi — tapi titik dan panah
+  // di mobile tetap harus bekerja. Tanpa ini tombolnya tampil dan diam saja.
+  if (reduced) {
+    const cards = gsap.utils.toArray('[data-product-card]', section);
+    const indexEls = section.querySelectorAll('[data-products-index]');
+    const setIndex = (i) => indexEls.forEach((el) => (el.textContent = String(i + 1).padStart(2, '0')));
+    gsap.matchMedia().add('(max-width: 1023px)', () =>
+      initMobileRail(section, cards, setIndex, { motion: false })
+    );
+    return;
+  }
+
   const track = section.querySelector('[data-products-track]');
-  const stage = section.querySelector('[data-products-stage]');
   const cards = gsap.utils.toArray('[data-product-card]', section);
   const introLines = gsap.utils.toArray('[data-intro-line]', section);
   const introTexts = gsap.utils.toArray('[data-intro-text]', section);
-  const introClip = section.querySelector('[data-intro-clip], [data-clip-title]');
-  const indexEl = section.querySelector('[data-products-index]');
+  // Dilingkupi [data-products-intro]: kepala mobile punya ClipTitle-nya sendiri
+  // dan letaknya LEBIH DULU di DOM, jadi querySelector polos akan salah ambil.
+  const introClip = section.querySelector('[data-products-intro] [data-clip-title]');
+  const indexEls = section.querySelectorAll('[data-products-index]');
   const hint = section.querySelector('[data-products-hint]');
   if (!track || !cards.length) return;
 
@@ -68,7 +81,7 @@ export default function initProducts() {
   function activate(i) {
     if (i === current) return;
     current = i;
-    if (indexEl) indexEl.textContent = String(i + 1).padStart(2, '0');
+    indexEls.forEach((el) => (el.textContent = String(i + 1).padStart(2, '0')));
   }
 
   if (hint) {
@@ -77,8 +90,10 @@ export default function initProducts() {
 
   const mm = gsap.matchMedia();
 
-  /* ---------------- Desktop: pin + geser horizontal ---------------- */
-  mm.add('(min-width: 768px)', () => {
+  /* ---------------- Dari 1024px: pin + geser horizontal ---------------- */
+  // Batasnya dinaikkan dari 768px: tablet mendapat scroll-snap, bukan pin.
+  // Alasannya ditulis lengkap di Products.astro.
+  mm.add('(min-width: 1024px)', () => {
     const distance = () => Math.max(0, track.scrollWidth - window.innerWidth);
 
     // Harus TWEEN (bukan timeline) dan ease none — syarat containerAnimation
@@ -181,9 +196,13 @@ export default function initProducts() {
       if (visual) {
         gsap.fromTo(
           visual,
-          { yPercent: 8 },
+          // Amplitudo diturunkan dari ±8 ke ±5: sejak kotak foto jadi flex-1,
+          // tingginya menyusut mengikuti teks, dan geseran 8% dari kotak yang
+          // lebih pendek mulai menyenggol judul varian di kartu yang teksnya
+          // panjang.
+          { yPercent: 5 },
           {
-            yPercent: -8,
+            yPercent: -5,
             ease: 'none',
             scrollTrigger: {
               trigger: card,
@@ -203,35 +222,187 @@ export default function initProducts() {
     };
   });
 
-  /* ---------------- Mobile: native scroll-snap ---------------- */
-  mm.add('(max-width: 767px)', () => {
-    if (!stage) return;
-    stage.style.overflowX = 'auto';
-    stage.style.overscrollBehaviorX = 'contain';
-    stage.style.scrollSnapType = 'x mandatory';
-    stage.style.scrollbarWidth = 'none';
-    cards.forEach((c) => {
-      c.style.scrollSnapAlign = 'center';
+  /* ---------------- Di bawah 1024px: carousel geser ---------------- */
+  mm.add('(max-width: 1023px)', () => initMobileRail(section, cards, activate, { motion: true }));
+}
+
+/**
+ * Carousel varian di bawah 1024px.
+ *
+ * Scroll-snap-nya murni CSS (lihat Products.astro); fungsi ini hanya membaca
+ * posisi geser dan menerjemahkannya jadi tiga hal:
+ *
+ *  1. "Coverflow" ringan. Tiap frame, jarak tiap kartu dari tengah layar
+ *     dihitung dalam satuan lebar kartu (d). Kartu di tengah (d≈0) tegak dan
+ *     penuh; makin jauh ia makin kecil, turun sedikit, dan miring kembali ke
+ *     kemiringan stikernya. Jadi kartu yang kamu pilih terasa "diangkat" dari
+ *     tumpukan — dan karena semuanya fungsi dari scrollLeft, gerakannya
+ *     menempel di jari, bukan animasi yang diputar sesudah jarinya lepas.
+ *  2. Cup di dalam kartu bergeser berlawanan arah (parallax dalam kartu).
+ *  3. Varian aktif: penghitung, titik, pendar warna, status tombol panah.
+ *
+ * Yang ditulis ke kartu hanya `rotate` dan `transform`, langsung ke style —
+ * bukan lewat gsap — karena ini dipanggil tiap frame scroll dan tidak ada
+ * tween yang perlu diinterpolasi. Rel-nya sendiri (track) sengaja tidak
+ * disentuh di sini, supaya entrance di bawah bebas menggerakkannya.
+ */
+function initMobileRail(section, cards, onActive, { motion }) {
+  const stage = section.querySelector('[data-products-stage]');
+  const track = section.querySelector('[data-products-track]');
+  const glow = section.querySelector('[data-products-glow]');
+  const dots = [...section.querySelectorAll('[data-products-dot]')];
+  const prev = section.querySelector('[data-products-prev]');
+  const next = section.querySelector('[data-products-next]');
+  if (!stage || !cards.length) return;
+
+  const visuals = cards.map((c) => c.querySelector('[data-product-visual]'));
+  const baseRotate = cards.map((c) => Number(c.dataset.rotate) || 0);
+
+  // Posisi tengah tiap kartu di dalam rel. offsetLeft mengabaikan transform,
+  // jadi skala dan rotasi yang kita pasang sendiri tidak ikut mengacaukannya.
+  let centers = [];
+  let width = 1;
+  const measure = () => {
+    centers = cards.map((c) => c.offsetLeft + c.offsetWidth / 2);
+    width = cards[0].offsetWidth || 1;
+  };
+
+  let active = -1;
+  const setActive = (i) => {
+    if (i === active) return;
+    active = i;
+    onActive(i);
+    dots.forEach((d, j) => d.setAttribute('aria-current', j === i ? 'true' : 'false'));
+    if (glow) glow.style.backgroundColor = cards[i].dataset.stage;
+    if (prev) prev.disabled = i === 0;
+    if (next) next.disabled = i === cards.length - 1;
+  };
+
+  let frame = 0;
+  const render = () => {
+    frame = 0;
+    const mid = stage.scrollLeft + stage.clientWidth / 2;
+    let nearest = 0;
+    let best = Infinity;
+
+    cards.forEach((card, i) => {
+      const d = (centers[i] - mid) / width;
+      const a = Math.min(1, Math.abs(d));
+      if (Math.abs(d) < best) {
+        best = Math.abs(d);
+        nearest = i;
+      }
+      if (!motion) return;
+
+      // Kartu aktif tidak dibuat tegak 100%: sisa 20% kemiringannya menjaga
+      // bahasa stiker brand tetap ada, bahkan di kartu yang sedang dibaca.
+      card.style.rotate = `${baseRotate[i] * (0.2 + 0.8 * a)}deg`;
+      card.style.transform = `translateY(${a * 22}px) scale(${1 - a * 0.09})`;
+      if (visuals[i]) {
+        const shift = Math.max(-1.2, Math.min(1.2, d)) * -12;
+        visuals[i].style.transform = `translateX(${shift}%)`;
+      }
     });
 
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) activate(cards.indexOf(e.target));
-        });
-      },
-      { root: stage, threshold: 0.6 }
-    );
-    cards.forEach((c) => io.observe(c));
+    setActive(nearest);
+  };
+  const queue = () => {
+    if (!frame) frame = requestAnimationFrame(render);
+  };
 
-    return () => {
-      io.disconnect();
-      stage.style.overflowX = '';
-      stage.style.scrollSnapType = '';
-      stage.style.overscrollBehaviorX = '';
-      cards.forEach((c) => {
-        c.style.scrollSnapAlign = '';
-      });
-    };
+  const goTo = (i) => {
+    const target = Math.max(0, Math.min(cards.length - 1, i));
+    stage.scrollTo({
+      left: centers[target] - stage.clientWidth / 2,
+      behavior: motion ? 'smooth' : 'auto',
+    });
+  };
+
+  const onDot = (e) => goTo(dots.indexOf(e.currentTarget));
+  const onPrev = () => goTo(active - 1);
+  const onNext = () => goTo(active + 1);
+  // Panah kiri/kanan saat fokus ada di dalam rel (mis. setelah Tab ke tombol
+  // Pesan): tanpa ini pengguna keyboard tidak bisa pindah varian di tablet.
+  const onKey = (e) => {
+    if (e.key === 'ArrowRight') onNext();
+    else if (e.key === 'ArrowLeft') onPrev();
+    else return;
+    e.preventDefault();
+  };
+
+  // Tab ke tombol "Pesan" di kartu yang masih di luar layar menggulirkan rel
+  // secara native — cukup ditangkap scroll listener, tidak perlu penanganan.
+  dots.forEach((d) => d.addEventListener('click', onDot));
+  prev?.addEventListener('click', onPrev);
+  next?.addEventListener('click', onNext);
+  stage.addEventListener('keydown', onKey);
+  stage.addEventListener('scroll', queue, { passive: true });
+
+  const ro = new ResizeObserver(() => {
+    measure();
+    queue();
   });
+  ro.observe(stage);
+  measure();
+  render();
+
+  /* ---- masuk: kepala, lalu rel meluncur dari kanan ---- */
+  // Rel masuk dari kanan dengan back.out — ia sedikit KELEWATAN ke kiri lalu
+  // kembali. Lewatan kecil itu yang mengajari "ini bisa digeser ke samping",
+  // tanpa satu kata petunjuk pun, dan hanya terjadi sekali.
+  const triggers = [];
+  if (motion) {
+    const headEls = section.querySelectorAll('[data-head-el]');
+    const headClip = section.querySelector('[data-head-clip] [data-clip-title]');
+    const rail = section.querySelector('[data-products-rail]');
+
+    gsap.set(headEls, { y: 36, opacity: 0 });
+    const head = gsap
+      .timeline({ paused: true })
+      .to(headEls, { y: 0, opacity: 1, duration: 0.7, ease: 'power3.out', stagger: 0.09 }, 0);
+    if (headClip) {
+      head.to(
+        headClip,
+        { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', duration: 0.8, ease: 'circ.out' },
+        0.15
+      );
+    }
+    triggers.push(
+      ScrollTrigger.create({
+        trigger: section,
+        start: 'top 75%',
+        once: true,
+        onEnter: () => head.play(),
+      })
+    );
+
+    gsap.set(track, { x: '40vw', opacity: 0 });
+    triggers.push(
+      ScrollTrigger.create({
+        trigger: rail || stage,
+        start: 'top 85%',
+        once: true,
+        onEnter: () =>
+          gsap.to(track, { x: 0, opacity: 1, duration: 1.3, ease: 'back.out(1.6)', delay: 0.1 }),
+      })
+    );
+  }
+
+  return () => {
+    cancelAnimationFrame(frame);
+    ro.disconnect();
+    triggers.forEach((t) => t.kill());
+    dots.forEach((d) => d.removeEventListener('click', onDot));
+    prev?.removeEventListener('click', onPrev);
+    next?.removeEventListener('click', onNext);
+    stage.removeEventListener('keydown', onKey);
+    stage.removeEventListener('scroll', queue);
+    stage.scrollLeft = 0;
+    gsap.set(track, { clearProps: 'x,opacity' });
+    cards.forEach((card, i) => {
+      card.style.rotate = `${baseRotate[i]}deg`;
+      card.style.transform = '';
+      if (visuals[i]) visuals[i].style.transform = '';
+    });
+  };
 }
