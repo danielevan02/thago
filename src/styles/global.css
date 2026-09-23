@@ -170,6 +170,13 @@
 
    !important karena clip-path awalnya ditulis sebagai atribut style inline di
    komponennya, jadi selektor biasa kalah spesifisitas. */
+/* Bar progres Story di Testimoni hanya bermakna kalau videonya diputar
+   otomatis — dan itu tugas testimonials.js. Tanpanya, sembunyikan. */
+.no-js [data-testi-bars],
+.reduced-motion [data-testi-bars] {
+  display: none;
+}
+
 .no-js [data-clip-title],
 .reduced-motion [data-clip-title] {
   clip-path: none !important;

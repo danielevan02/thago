@@ -110,7 +110,7 @@ const shown = cards.filter((c) => c.video);
  */
 const CARD =
   'group border-cream bg-cream-deep relative flex-none overflow-hidden shadow-[0_14px_28px_rgba(36,20,99,0.22)]' +
-  ' w-[76vw] max-w-[340px] snap-center rounded-3xl border-4' +
+  ' w-[76vw] max-w-[340px] snap-center snap-always rounded-3xl border-4' +
   ' lg:snap-align-none' +
   ' lg:w-96 lg:max-w-none lg:rounded-[2vw] lg:border-[0.5vw]' +
   ' lg:rotate-[var(--rot)] lg:translate-y-[var(--shift)] lg:[&:not(:first-child)]:-ml-44';
@@ -178,8 +178,48 @@ const TITLE =
       scrollbar disembunyikan — barisnya sudah jelas bisa digeser dari kartu
       berikutnya yang mengintip.
     -->
+    <!--
+      Bar progres ala IG Story, hanya di bawah 1024px. Tiga garis selebar kartu:
+      yang sudah lewat penuh, yang sedang main terisi mengikuti durasinya, yang
+      belum masih kosong. Ini bahasa yang sudah dikenal jari orang untuk "video
+      vertikal dari orang sungguhan" — sekaligus jadi penghitungnya, jadi tidak
+      perlu titik atau angka 01/03 lagi. Tiap garis juga tombol untuk lompat.
+
+      Disembunyikan tanpa JS dan saat reduced-motion (global.css): di sana
+      videonya tidak diputar otomatis, jadi garis yang tidak pernah terisi
+      cuma akan terbaca sebagai pemuat yang macet.
+    -->
     <div
-      class="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-[12vw] pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mt-0 lg:absolute lg:inset-x-0 lg:bottom-[4vh] lg:snap-none lg:gap-0 lg:overflow-visible lg:px-0 lg:pb-0 lg:justify-center"
+      class="mx-auto mt-6 flex w-[76vw] max-w-[340px] gap-1.5 lg:hidden"
+      role="group"
+      aria-label="Pilih video"
+      data-testi-bars
+    >
+      {
+        shown.map((card, i) => (
+          <button
+            type="button"
+            class="grid h-6 flex-1 items-center"
+            aria-label={`Video ${i + 1} dari ${shown.length}: ${card.name}`}
+            aria-current={i === 0 ? 'true' : 'false'}
+            data-testi-bar
+          >
+            <span class="bg-ink/15 block h-1 overflow-hidden rounded-full">
+              <span class="bg-pink block h-full origin-left scale-x-0" data-testi-bar-fill />
+            </span>
+          </button>
+        ))
+      }
+    </div>
+
+    <!--
+      `relative` di mobile itu syarat scripts/rail.js: wadah gulirnya harus
+      jadi offsetParent kartu. Padding tegaknya memberi ruang untuk kartu tetangga yang
+      dimiringkan dan diturunkan rail.js — overflow-x:auto ikut memotong
+      sumbu tegak, jadi tanpa ruang ini sudut kartunya terpenggal.
+    -->
+    <div
+      class="relative flex snap-x snap-mandatory gap-4 overflow-x-auto px-[12vw] pt-6 pb-12 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mt-0 lg:absolute lg:inset-x-0 lg:bottom-[4vh] lg:snap-none lg:gap-0 lg:overflow-visible lg:px-0 lg:pt-0 lg:pb-0 lg:justify-center"
       data-testi-cards
     >
       {

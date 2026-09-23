@@ -1,5 +1,6 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { createRail, railEntrance } from '../rail.js';
 
 /**
  * Testimoni — mengikuti TestimonialSection SPYLT.
@@ -271,62 +272,164 @@ export default function initTestimonials() {
   });
 
   /**
-   * --- 2b. layar sentuh: reveal sederhana ---
+   * --- 2b. layar sentuh: carousel Story ---
    *
-   * Tanpa pin dan tanpa kipas. Kartunya naik sedikit sambil memudar masuk,
-   * berurutan — cukup untuk menandai bahwa barisnya hidup, tanpa merebut
-   * kendali scroll dari jari.
+   * Tanpa pin dan tanpa kipas. Fisika geraknya dipinjam utuh dari section
+   * Varian (scripts/rail.js) — kartu di tengah diangkat, tetangganya mengecil
+   * dan miring ke sudut kipas desktop — supaya dua carousel di halaman ini
+   * terasa satu sistem. Yang khas section ini: kendalinya berbahasa IG Story.
+   *
+   *  - Hanya kartu AKTIF yang diputar, dan hanya selama section terlihat.
+   *    Dulu tiap kartu yang "terlihat di dalam barisnya" ikut diputar, dan
+   *    karena root observer-nya barisan itu sendiri, videonya tetap jalan
+   *    walaupun section-nya sudah jauh di luar layar.
+   *  - Bar progres terisi mengikuti durasi video aktif.
+   *  - Video selesai → otomatis geser ke berikutnya, KECUALI jari sedang
+   *    (atau baru saja) menyentuh rel: menggeser kartu dari bawah jari orang
+   *    itu merebut kendali. Di video terakhir ia diulang, bukan berputar balik
+   *    ke awal — lompatan dua kartu ke kiri terasa seperti kesalahan.
+   *  - Ketuk kartu tetangga → lompat ke sana. Ketuk kartu aktif → jeda/lanjut.
+   *
+   * Tetap SENYAP sampai tombol speaker ditekan — lihat soundOn di atas.
    */
   mm.add(TOUCH, () => {
-    if (!cards.length) return;
-    gsap.set(cards, { y: 48, opacity: 0 });
-    gsap.to(cards, {
-      y: 0,
-      opacity: 1,
-      duration: 0.6,
-      ease: 'power3.out',
-      stagger: 0.1,
-      scrollTrigger: {
-        trigger: cardsBox ?? section,
-        start: 'top 85%',
-        once: true,
+    if (!cards.length || !cardsBox) return;
+
+    const videos = cards.map((c) => c.querySelector('video'));
+    const bars = gsap.utils.toArray('[data-testi-bar]', section);
+    const fills = bars.map((b) => b.querySelector('[data-testi-bar-fill]'));
+
+    // loop dimatikan HANYA di sini: tanpa itu `ended` tidak pernah terpicu dan
+    // tidak ada yang bisa dimajukan. Desktop tetap berulang saat di-hover.
+    videos.forEach((v) => v && (v.loop = false));
+
+    // Indeks aktif disimpan sendiri, bukan dibaca dari rail.active: createRail()
+    // sudah memanggil onActive SEBELUM ia selesai dikembalikan, jadi `rail`
+    // masih belum terdefinisi pada panggilan pertama itu.
+    let current = 0;
+    let inView = false;
+    let userPaused = false;
+    let touching = false;
+    let lastTouch = 0;
+
+    const sync = () => {
+      videos.forEach((v, j) => {
+        if (!v) return;
+        if (j === current && inView && !userPaused) playCard(v);
+        else v.pause();
+      });
+    };
+
+    const rail = createRail({
+      stage: cardsBox,
+      cards,
+      motion: true,
+      rotations: cards.map((c) => Number(c.dataset.rot) || 0),
+      // video tetangga sedang tidak main — diredupkan supaya mata tidak
+      // menunggu sesuatu terjadi di sana
+      dim: 0.35,
+      onActive: (i) => {
+        current = i;
+        userPaused = false;
+        videos.forEach((v, j) => {
+          // yang ditinggal diputar ulang dari awal saat didatangi lagi,
+          // seperti Story — dan bar-nya kembali kosong dengan jujur
+          if (v && j !== i) v.currentTime = 0;
+        });
+        bars.forEach((b, j) => b.setAttribute('aria-current', j === i ? 'true' : 'false'));
+        sync();
       },
     });
-    /**
-     * Video main sendiri saat kartunya berhenti di tengah, lalu berhenti
-     * begitu tergeser pergi — pola yang sudah jadi refleks di layar sentuh.
-     *
-     * Tetap SENYAP: autoplay bersuara diblokir browser sampai ada gestur
-     * pengguna, dan suara yang tiba-tiba keluar saat orang menggulir adalah
-     * cara tercepat membuat halaman ditutup. Tombol speaker di sudut kartu
-     * yang menyalakannya, dan klik itulah gestur yang membuka kuncinya.
-     *
-     * root-nya wadah carousel, bukan viewport: yang menentukan "sedang
-     * dilihat" di sini adalah posisi kartu di dalam barisnya sendiri.
-     */
+
+    // Bar progres. Lewat ticker gsap yang memang sudah berdetak untuk Lenis,
+    // bukan `timeupdate` — event itu cuma ~4× per detik dan garisnya tersendat.
+    const tick = () => {
+      if (!inView) return;
+      const i = current;
+      fills.forEach((f, j) => {
+        if (!f) return;
+        let p = j < i ? 1 : 0;
+        if (j === i) {
+          const v = videos[j];
+          p = v && v.duration ? v.currentTime / v.duration : 0;
+        }
+        // `scale`, bukan transform: kelas scale-x-0 di Tailwind v4 menulis ke
+        // properti `scale`, dan transform scaleX() hanya akan menumpuk di atas
+        // skala 0 itu — garisnya tidak pernah terlihat terisi.
+        f.style.scale = `${p} 1`;
+      });
+    };
+    gsap.ticker.add(tick);
+
+    const onEnded = (e) => {
+      const i = videos.indexOf(e.currentTarget);
+      if (i !== current) return;
+      const handsOff = !touching && Date.now() - lastTouch > 1500;
+      if (handsOff && i < cards.length - 1) {
+        rail.goTo(i + 1);
+      } else {
+        e.currentTarget.currentTime = 0;
+        sync();
+      }
+    };
+    videos.forEach((v) => v?.addEventListener('ended', onEnded));
+
+    const onDown = () => {
+      touching = true;
+      lastTouch = Date.now();
+    };
+    const onUp = () => {
+      touching = false;
+      lastTouch = Date.now();
+    };
+    cardsBox.addEventListener('pointerdown', onDown, { passive: true });
+    cardsBox.addEventListener('touchstart', onDown, { passive: true });
+    window.addEventListener('pointerup', onUp, { passive: true });
+    window.addEventListener('touchend', onUp, { passive: true });
+
+    const onCardClick = (e) => {
+      const i = cards.indexOf(e.currentTarget);
+      if (i !== current) {
+        rail.goTo(i);
+        return;
+      }
+      userPaused = !userPaused;
+      sync();
+    };
+    cards.forEach((c) => c.addEventListener('click', onCardClick));
+
+    const onBar = (e) => rail.goTo(bars.indexOf(e.currentTarget));
+    bars.forEach((b) => b.addEventListener('click', onBar));
+
     const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          const video = e.target.querySelector('video');
-          if (!video) return;
-          if (e.isIntersecting) {
-            video.muted = !soundOn;
-            video.play?.().catch(() => {
-              video.muted = true;
-              video.play?.().catch(() => {});
-            });
-          } else {
-            video.pause();
-          }
-        });
+      ([entry]) => {
+        inView = entry.isIntersecting;
+        sync();
       },
-      { root: cardsBox, threshold: 0.6 },
+      { threshold: 0.35 },
     );
-    cards.forEach((c) => io.observe(c));
+    io.observe(cardsBox);
+
+    const stopEntrance = railEntrance(cardsBox, cardsBox);
 
     return () => {
+      stopEntrance();
       io.disconnect();
-      gsap.set(cards, { clearProps: 'y,opacity' });
+      gsap.ticker.remove(tick);
+      rail.destroy();
+      videos.forEach((v) => {
+        if (!v) return;
+        v.removeEventListener('ended', onEnded);
+        v.loop = true;
+        v.pause();
+      });
+      fills.forEach((f) => f && (f.style.scale = ''));
+      cardsBox.removeEventListener('pointerdown', onDown);
+      cardsBox.removeEventListener('touchstart', onDown);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('touchend', onUp);
+      cards.forEach((c) => c.removeEventListener('click', onCardClick));
+      bars.forEach((b) => b.removeEventListener('click', onBar));
     };
   });
 
